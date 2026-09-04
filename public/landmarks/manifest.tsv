@@ -35,39 +35,42 @@ tram	SKIP
 amphitheater	SKIP
 navajo	SKIP
 dunes	SKIP
-jenny	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Jenny_Lake.jpg?width=800
-snake-river	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Snake_River_Overlook.jpg?width=800
-mormon-row	FAIL	Error: 400 https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Barns_grand_tetons.jpg/800px-Barns_grand_tetons.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail
-paradise	FAIL	Error: summary 404
-reflection	FAIL	Error: summary 404
-narada	FAIL	Error: 400 https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Narada_Falls%2C_Mount_Rainier_National_Park%2C_equirectangular_panorama_02.jpg/800px-Narada_Falls%2C_Mount_Rainier_National_Park%2C_equirectangular_panorama_02.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail
-sherman	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/General_Sherman_tree.jpg?width=800
-moro	FAIL	Error: 400 https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Moro_Rock-View_from_Potwisha.jpg/800px-Moro_Rock-View_from_Potwisha.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail
-grant-grove	FAIL	Error: no image
-badwater	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Badwater_Basin.jpg?width=800
-mesquite	FAIL	Error: 400 https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/DV2_M.jpg/800px-DV2_M.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail
-zabriskie	OK	https://commons.wikimedia.org/wiki/Special:FilePath/Zabriskie_Point.jpg?width=800
-skyline	FAIL	Error: summary 429
-dark-hollow	FAIL	Error: summary 429
-big-meadows	FAIL	Error: summary 429
-brandywine	OK	https://commons.wikimedia.org/wiki/Special:FilePath/Brandywine_Falls.jpg?width=800
-ledges	FAIL	Error: summary 429
-beaver-marsh	FAIL	Error: summary 429
-anhinga	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Anhinga_Trail.jpg?width=800
-shark-valley	FAIL	Error: summary 429
-pahayokee	FAIL	Error: summary 429
-kilauea	OK	https://commons.wikimedia.org/wiki/Special:FilePath/Kilauea.jpg?width=800
-thurston	FAIL	Error: summary 429
-chain-craters	FAIL	Error: summary 429
-pinnacles	FAIL	Error: summary 429
-yellow-mounds	FAIL	Error: summary 429
-rushmore	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Mount_Rushmore.jpg?width=800
-capitol-dome	FAIL	Error: summary 429
-fruita	FAIL	Error: summary 429
-capitol-drive	FAIL	Error: summary 429
-fordyce	FAIL	Error: summary 429
-hot-springs-tower	FAIL	Error: summary 429
-promenade	FAIL	Error: summary 429
-rim-village	FAIL	Error: summary 429
-wizard	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Wizard_Island.jpg?width=800
-phantom-ship	FAIL	Error: summary 429
+jenny	SKIP
+snake-river	SKIP
+mormon-row	SKIP
+paradise	SKIP
+reflection	SKIP
+narada	SKIP
+sherman	SKIP
+moro	SKIP
+grant-grove	SKIP
+badwater	SKIP
+mesquite	SKIP
+zabriskie	SKIP
+skyline	SKIP
+dark-hollow	SKIP
+big-meadows	SKIP
+brandywine	SKIP
+ledges	SKIP
+beaver-marsh	SKIP
+anhinga	SKIP
+shark-valley	SKIP
+pahayokee	SKIP
+kilauea	SKIP
+thurston	SKIP
+chain-craters	SKIP
+pinnacles	SKIP
+yellow-mounds	SKIP
+rushmore	SKIP
+capitol-dome	SKIP
+fruita	SKIP
+capitol-drive	SKIP
+fordyce	SKIP
+hot-springs-tower	SKIP
+promenade	SKIP
+rim-village	SKIP
+wizard	SKIP
+phantom-ship	SKIP
+southernmost	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Southernmost_point_in_the_continental_USA.jpg?width=800
+mallory	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Mallory_Square.jpg?width=800
+dry-tortugas	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Fort_Jefferson_Dry_Tortugas.jpg?width=800

@@ -45,7 +45,12 @@ export async function generateTrip(input: TripInput): Promise<TripPlan> {
   const family = input.kids > 0 || people >= 3;
   const start = parseISODate(input.startDate);
 
-  const gatewayReturnNight = flying && input.days >= 6;
+  const stayAtGateway = park.stayAreas.some(
+    (area) =>
+      area.name.toLowerCase() === park.gateway.city.toLowerCase() ||
+      nearby(area.coord, park.gateway.coord),
+  );
+  const gatewayReturnNight = flying && input.days >= 6 && !stayAtGateway;
   const destinationNights = Math.max(1, input.days - 1 - (gatewayReturnNight ? 1 : 0));
   const allocations = allocateBlocks(park.blocks, destinationNights, family);
 

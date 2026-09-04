@@ -1966,6 +1966,89 @@ export const PARKS: ParkProfile[] = [
       { id: "phantom-ship", name: "Phantom Ship", coord: { lng: -122.087, lat: 42.912 }, photo: img("phantom-ship") },
     ],
   },
+  {
+    id: "key-west",
+    name: "Key West & Dry Tortugas",
+    shortName: "Key West",
+    state: "Florida",
+    regionTitle: "Key West",
+    blurb: "Old Town sunsets, the Overseas Highway, and a ferry day to Dry Tortugas National Park.",
+    coord: { lng: -81.78, lat: 24.5551 },
+    gateway: {
+      city: "Key West",
+      airport: "EYW",
+      coord: { lng: -81.7594, lat: 24.5561 },
+    },
+    typicalLoopMiles: 40,
+    stayAreas: [
+      {
+        id: "old-town",
+        name: "Key West",
+        coord: { lng: -81.78, lat: 24.5551 },
+        lodging: "Key West — many hotels in Old Town and near Duval",
+        lodgingKind: "area",
+      },
+    ],
+    blocks: [
+      {
+        id: "old-town",
+        label: "Old Town Key West",
+        areaId: "old-town",
+        driveHoursFromPrev: 0.25,
+        driveFrom: "Key West",
+        stayNights: 2,
+        activities: [
+          "Southernmost Point and a walk down Duval Street",
+          "Fort Zachary Taylor beach and brick fort",
+          "Mallory Square sunset celebration",
+        ],
+        familyActivities: [
+          "Southernmost Point photo",
+          "Fort Zachary Taylor beach time",
+          "Key West Butterfly & Nature Conservatory",
+          "Mallory Square sunset — street performers and a snack",
+        ],
+        travelDayActivities: [
+          "Check in and walk Duval in the evening cool",
+          "Mallory Square sunset if you arrive in time",
+        ],
+        fullDayActivities: [
+          "Southernmost Point and Whitehead Street",
+          "Fort Zachary Taylor Historic State Park",
+          "Key West Lighthouse or the Butterfly Conservatory",
+          "Mallory Square sunset",
+        ],
+      },
+      {
+        id: "dry-tortugas",
+        label: "Dry Tortugas ferry day",
+        areaId: "old-town",
+        driveHoursFromPrev: 0.2,
+        driveFrom: "Key West",
+        stayNights: 1,
+        activities: [
+          "Yankee Freedom ferry to Garden Key (book ahead)",
+          "Fort Jefferson and the moat wall",
+          "Snorkel off the island if the water is calm",
+        ],
+        familyActivities: [
+          "Early ferry — pack snacks, hats, and reef-safe sunscreen",
+          "Explore Fort Jefferson's courtyards and ramparts",
+          "Shallow snorkel near the beach",
+        ],
+        fullDayActivities: [
+          "Yankee Freedom ferry to Dry Tortugas National Park (book timed seats)",
+          "Fort Jefferson walk and snorkel",
+          "Late return — easy dinner back in Old Town",
+        ],
+      },
+    ],
+    landmarks: [
+      { id: "southernmost", name: "Southernmost Point", coord: { lng: -81.7975, lat: 24.5465 }, photo: img("southernmost") },
+      { id: "mallory", name: "Mallory Square", coord: { lng: -81.807, lat: 24.56 }, photo: img("mallory") },
+      { id: "dry-tortugas", name: "Dry Tortugas / Fort Jefferson", coord: { lng: -82.8734, lat: 24.6275 }, photo: img("dry-tortugas") },
+    ],
+  },
 ];
 
 export function getPark(id: string): ParkProfile | undefined {

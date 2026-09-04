@@ -130,6 +130,11 @@ export const EXTRA_VIEWPOINTS: Record<string, Landmark[]> = {
     p("discovery-point", "Discovery Point", -122.147, 42.913),
     p("pinnacles-cl", "Pinnacles", -122.07, 42.861),
   ],
+  "key-west": [
+    p("fort-zachary", "Fort Zachary Taylor", -81.8103, 24.5475),
+    p("bahia-honda", "Bahia Honda State Park", -81.274, 24.659),
+    p("seven-mile", "Seven Mile Bridge", -81.128, 24.697),
+  ],
 };
 
 export const VIEWPOINT_SEARCH: Record<string, string> = {
@@ -204,4 +209,7 @@ export const VIEWPOINT_SEARCH: Record<string, string> = {
   watchman: "Watchman Overlook Crater Lake",
   "discovery-point": "Discovery Point Crater Lake",
   "pinnacles-cl": "Pinnacles Crater Lake",
+  "fort-zachary": "Fort Zachary Taylor",
+  "bahia-honda": "Bahia Honda State Park",
+  "seven-mile": "Seven Mile Bridge",
 };

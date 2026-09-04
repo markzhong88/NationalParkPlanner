@@ -58,7 +58,7 @@ export function heuristicEstimate(req: EstimateRequest): CostEstimate {
     flightsHigh = fare.high * seats;
   }
 
-  const priceyPark = /yosemite|glacier|yellowstone|zion|canyon|acadia|rainier|sequoia|teton|volcano|crater/i.test(req.parkName);
+  const priceyPark = /yosemite|glacier|yellowstone|zion|canyon|acadia|rainier|sequoia|teton|volcano|crater|key west/i.test(req.parkName);
   const hotelNightLow = req.kids > 0 ? (priceyPark ? 220 : 190) : priceyPark ? 180 : 155;
   const hotelNightHigh = req.kids > 0 ? (priceyPark ? 400 : 310) : priceyPark ? 340 : 250;
   const hotelsLow = hotelNightLow * nights * rooms;
@@ -72,8 +72,8 @@ export function heuristicEstimate(req: EstimateRequest): CostEstimate {
   const foodLow = (req.adults * 42 + req.kids * 24) * req.days;
   const foodHigh = (req.adults * 68 + req.kids * 40) * req.days;
 
-  const extrasLow = 45 + people * (req.highlights.some((h) => /antelope|canyon|grove/i.test(h)) ? 45 : 25);
-  const extrasHigh = 90 + people * (req.highlights.some((h) => /antelope|canyon|grove/i.test(h)) ? 95 : 50);
+  const extrasLow = 45 + people * (req.highlights.some((h) => /antelope|canyon|grove|tortugas/i.test(h)) ? 45 : 25);
+  const extrasHigh = 90 + people * (req.highlights.some((h) => /antelope|canyon|grove|tortugas/i.test(h)) ? 95 : 50);
 
   return finalize({
     flights: {

@@ -26,6 +26,7 @@ export const CITIES: City[] = [
   { name: "Portland", state: "OR", coord: { lng: -122.6784, lat: 45.5152 }, airport: "PDX" },
   { name: "Las Vegas", state: "NV", coord: { lng: -115.1398, lat: 36.1699 }, airport: "LAS" },
   { name: "Miami", state: "FL", coord: { lng: -80.1918, lat: 25.7617 }, airport: "MIA" },
+  { name: "Key West", state: "FL", coord: { lng: -81.78, lat: 24.5551 }, airport: "EYW", aliases: ["keywest", "key west fl"] },
   { name: "Atlanta", state: "GA", coord: { lng: -84.388, lat: 33.749 }, airport: "ATL" },
   { name: "Minneapolis", state: "MN", coord: { lng: -93.265, lat: 44.9778 }, airport: "MSP" },
   { name: "Salt Lake City", state: "UT", coord: { lng: -111.891, lat: 40.7608 }, airport: "SLC" },

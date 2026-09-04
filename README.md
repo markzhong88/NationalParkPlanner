@@ -21,14 +21,13 @@ The Arizona family demo (New York → Grand Canyon, 4 people, 7 days) follows th
 
 Itineraries come from curated park knowledge in the app. Cost is a ballpark from typical US prices, not a live quote. Driving lines use the public OSRM router when available. No API keys are required.
 
-## Share a public demo (no domain required)
+## Share a public demo
 
-GitHub Pages is enough. You do **not** need to buy a domain. After this repo is on GitHub, the site is typically:
+GitHub Pages hosts the site. After DNS is pointed at GitHub Pages, it is:
 
-`https://<your-github-username>.github.io/NationalParkPlanner/`
+`https://rimfold.com`
 
 1. Create a **public** GitHub repo named `NationalParkPlanner` and push `main`.
 2. In the repo: **Settings → Pages → Source → GitHub Actions**.
-3. The workflow in `.github/workflows/pages.yml` builds and publishes on every push to `main`.
-
-A custom domain is optional later, under the same Pages settings.
+3. Under **Custom domain**, enter `rimfold.com`, wait for DNS to check, then enable **Enforce HTTPS**.
+4. The workflow in `.github/workflows/pages.yml` builds and publishes on every push to `main`.

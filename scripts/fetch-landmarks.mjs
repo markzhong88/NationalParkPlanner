@@ -81,6 +81,9 @@ const ARTICLES = {
   "rim-village": "Crater Lake",
   wizard: "Wizard Island",
   "phantom-ship": "Phantom Ship (island)",
+  southernmost: "Southernmost Point Buoy",
+  mallory: "Mallory Square",
+  "dry-tortugas": "Dry Tortugas National Park",
 };
 
 const FILES = {
@@ -109,6 +112,9 @@ const FILES = {
   kilauea: "Kilauea.jpg",
   rushmore: "Mount_Rushmore.jpg",
   wizard: "Wizard_Island.jpg",
+  southernmost: "Southernmost_point_buoy,_NE_view.jpg",
+  mallory: "Mallory_Square.jpg",
+  "dry-tortugas": "Fort-Jefferson_Dry-Tortugas.jpg",
 };
 
 async function exists(file) {
