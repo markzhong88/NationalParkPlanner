@@ -27,7 +27,6 @@ export type CostEstimate = {
   extras: CostLine;
   totalLow: number;
   totalHigh: number;
-  source: "openai" | "heuristic";
   disclaimer: string;
 };
 
@@ -35,7 +34,7 @@ export type Landmark = {
   id: string;
   name: string;
   coord: Coordinates;
-  photo: string;
+  photo?: string;
   /** Pixel offset of the photo card from the map pin [x, y] */
   offset?: [number, number];
   days?: number[];
@@ -129,6 +128,8 @@ export type StayArea = {
   coord: Coordinates;
   lodging: string;
   lodgingFamily?: string;
+  /** named = scarce lodge worth booking by name. area = pick any hotel in this town. */
+  lodgingKind?: "named" | "area";
 };
 
 export type ExploreBlock = {

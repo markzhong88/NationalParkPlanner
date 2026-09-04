@@ -37,7 +37,10 @@ export async function generateTrip(input: TripInput): Promise<TripPlan> {
   const homeIsGateway =
     distanceToGateway < 35 ||
     home.label.toLowerCase().includes(park.gateway.city.toLowerCase());
-  const flying = !homeIsGateway && distanceToGateway > FLY_THRESHOLD_MILES;
+  const oceanPark = park.state === "Hawaii";
+  const flying = oceanPark
+    ? distanceToGateway > 80
+    : !homeIsGateway && distanceToGateway > FLY_THRESHOLD_MILES;
   const people = input.adults + input.kids;
   const family = input.kids > 0 || people >= 3;
   const start = parseISODate(input.startDate);
@@ -88,7 +91,9 @@ export async function generateTrip(input: TripInput): Promise<TripPlan> {
       if (park.id === "grand-canyon") {
         if (lm.id === "cathedral-rock") return usedAreaIds.has("sedona");
         if (lm.id === "horseshoe-bend" || lm.id === "antelope") return usedAreaIds.has("page");
-        if (lm.id === "south-rim") return usedAreaIds.has("grand-canyon");
+        if (lm.id === "south-rim" || lm.id === "desert-view" || lm.id === "yavapai") {
+          return usedAreaIds.has("grand-canyon");
+        }
       }
       return true;
     })
@@ -417,6 +422,7 @@ function activitiesFor(args: {
 }
 
 function lodgingFor(area: StayArea, family: boolean): string {
+  if (area.lodgingKind !== "named") return area.lodging;
   return (family && area.lodgingFamily) || area.lodging;
 }
 
@@ -436,6 +442,7 @@ function gatewayArea(park: ParkProfile): StayArea {
       name: park.gateway.city,
       coord: park.gateway.coord,
       lodging: `Airport hotel in ${park.gateway.city}`,
+      lodgingKind: "area",
     }
   );
 }

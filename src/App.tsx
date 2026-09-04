@@ -3,7 +3,7 @@ import { getPark } from "./data/parks";
 import { Generating } from "./components/Generating";
 import { Landing } from "./components/Landing";
 import { TripPoster } from "./components/TripPoster";
-import { fetchCostEstimate, requestFromPlan } from "./lib/estimateCost";
+import { heuristicEstimate, requestFromPlan } from "./lib/estimateCost";
 import { defaultStartDate } from "./lib/format";
 import { generateTrip } from "./lib/generateTrip";
 import type { TripInput, TripPlan } from "./types";
@@ -41,7 +41,7 @@ export function App() {
     const started = Date.now();
     try {
       const result = await generateTrip(next);
-      result.cost = await fetchCostEstimate(requestFromPlan(result, next));
+      result.cost = heuristicEstimate(requestFromPlan(result, next));
       const wait = Math.max(0, 1400 - (Date.now() - started));
       await sleep(wait);
       setPlan(result);

@@ -5,10 +5,12 @@ export function DayCard({
   day,
   selected,
   onSelect,
+  places = [],
 }: {
   day: DayPlan;
   selected: boolean;
   onSelect: () => void;
+  places?: string[];
 }) {
   return (
     <article
@@ -54,6 +56,12 @@ export function DayCard({
               </li>
             ))}
           </ul>
+          {places.length > 0 ? (
+            <p className="mt-2 text-[11px] leading-relaxed text-ink/45">
+              <span className="font-semibold tracking-wide text-ink/55">Places </span>
+              {places.join(" · ")}
+            </p>
+          ) : null}
           <p className="mt-2.5 flex items-center gap-1.5 text-[11px] text-ink/55">
             <BedIcon />
             <span className="truncate">{day.stay}</span>

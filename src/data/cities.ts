@@ -59,6 +59,11 @@ export const CITIES: City[] = [
   { name: "Grand Junction", state: "CO", coord: { lng: -108.5506, lat: 39.0639 }, airport: "GJT" },
   { name: "Palm Springs", state: "CA", coord: { lng: -116.5453, lat: 33.8303 }, airport: "PSP" },
   { name: "Reno", state: "NV", coord: { lng: -119.8138, lat: 39.5296 }, airport: "RNO" },
+  { name: "Kailua-Kona", state: "HI", coord: { lng: -155.9969, lat: 19.6399 }, airport: "KOA", aliases: ["kona", "kailua kona"] },
+  { name: "Hilo", state: "HI", coord: { lng: -155.082, lat: 19.7074 }, airport: "ITO" },
+  { name: "Rapid City", state: "SD", coord: { lng: -103.231, lat: 44.0805 }, airport: "RAP" },
+  { name: "Medford", state: "OR", coord: { lng: -122.8756, lat: 42.3265 }, airport: "MFR" },
+  { name: "Little Rock", state: "AR", coord: { lng: -92.2896, lat: 34.7465 }, airport: "LIT" },
 ];
 
 export function findCity(query: string): City | undefined {

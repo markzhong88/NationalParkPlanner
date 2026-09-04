@@ -1,4 +1,4 @@
-import type { CostEstimate, CostLine, TripInput, TripPlan } from "../types";
+import type { CostEstimate, TripInput, TripPlan } from "../types";
 
 export type EstimateRequest = {
   home: string;
@@ -58,7 +58,7 @@ export function heuristicEstimate(req: EstimateRequest): CostEstimate {
     flightsHigh = fare.high * seats;
   }
 
-  const priceyPark = /yosemite|glacier|yellowstone|zion|canyon|acadia/i.test(req.parkName);
+  const priceyPark = /yosemite|glacier|yellowstone|zion|canyon|acadia|rainier|sequoia|teton|volcano|crater/i.test(req.parkName);
   const hotelNightLow = req.kids > 0 ? (priceyPark ? 220 : 190) : priceyPark ? 180 : 155;
   const hotelNightHigh = req.kids > 0 ? (priceyPark ? 400 : 310) : priceyPark ? 340 : 250;
   const hotelsLow = hotelNightLow * nights * rooms;
@@ -103,7 +103,7 @@ export function heuristicEstimate(req: EstimateRequest): CostEstimate {
       high: extrasHigh,
       note: "Park entry, tours, and incidentals",
     },
-  }, "heuristic");
+  });
 }
 
 function flightPair(req: EstimateRequest): string {
@@ -113,8 +113,7 @@ function flightPair(req: EstimateRequest): string {
 }
 
 function finalize(
-  lines: Omit<CostEstimate, "currency" | "totalLow" | "totalHigh" | "source" | "disclaimer">,
-  source: CostEstimate["source"],
+  lines: Omit<CostEstimate, "currency" | "totalLow" | "totalHigh" | "disclaimer">,
 ): CostEstimate {
   const keys = ["flights", "hotels", "rental", "food", "extras"] as const;
   const totalLow = keys.reduce((n, k) => n + lines[k].low, 0);
@@ -124,7 +123,6 @@ function finalize(
     ...lines,
     totalLow: Math.round(totalLow),
     totalHigh: Math.round(totalHigh),
-    source,
     disclaimer:
       "Ballpark from typical 2026 US prices — not a live Google Flights or hotel quote. Check fares before you budget.",
   };
@@ -149,56 +147,6 @@ export function requestFromPlan(plan: TripPlan, input: TripInput): EstimateReque
     hotels,
     driveMiles: plan.totalMiles,
     highlights: plan.highlights,
-  };
-}
-
-export async function fetchCostEstimate(req: EstimateRequest): Promise<CostEstimate> {
-  const fallback = heuristicEstimate(req);
-  try {
-    const res = await fetch("/api/estimate-cost", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(req),
-    });
-    if (!res.ok) return fallback;
-    const data = (await res.json()) as Partial<CostEstimate> & { error?: string };
-    if (data.error || !data.flights) return fallback;
-    return normalizeEstimate(data, fallback);
-  } catch {
-    return fallback;
-  }
-}
-
-export function normalizeEstimate(raw: Partial<CostEstimate>, fallback: CostEstimate): CostEstimate {
-  return finalize(
-    {
-      flights: clampFlights(raw.flights, fallback.flights),
-      hotels: line(raw.hotels, fallback.hotels),
-      rental: line(raw.rental, fallback.rental),
-      food: line(raw.food, fallback.food),
-      extras: line(raw.extras, fallback.extras),
-    },
-    "openai",
-  );
-}
-
-function line(a: CostLine | undefined, b: CostLine): CostLine {
-  return {
-    low: Math.max(0, Math.round(Number(a?.low ?? b.low))),
-    high: Math.max(0, Math.round(Number(a?.high ?? b.high))),
-    note: String(a?.note || b.note),
-  };
-}
-
-function clampFlights(ai: CostLine | undefined, floor: CostLine): CostLine {
-  const parsed = line(ai, floor);
-  if (floor.high === 0 && floor.low === 0) return { ...parsed, low: 0, high: 0 };
-  const tooLow = parsed.low < floor.low * 0.7 || parsed.high < floor.low;
-  if (tooLow) return { ...floor, note: parsed.note || floor.note };
-  return {
-    low: Math.max(parsed.low, Math.round(floor.low * 0.85)),
-    high: Math.max(parsed.high, parsed.low, Math.round(floor.high * 0.9)),
-    note: parsed.note || floor.note,
   };
 }
 

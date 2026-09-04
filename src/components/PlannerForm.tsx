@@ -37,7 +37,9 @@ export function PlannerForm({ value, onChange, onSubmit, onDemo }: Props) {
           onChange={(e) => patch({ parkId: e.target.value })}
           className="rounded-xl border border-ink/10 bg-white/90 px-3.5 py-3 text-[15px] outline-none ring-pine/30 transition focus:ring-2"
         >
-          {PARKS.map((p) => (
+          {[...PARKS]
+            .sort((a, b) => a.shortName.localeCompare(b.shortName))
+            .map((p) => (
             <option key={p.id} value={p.id}>
               {p.shortName} — {p.state}
             </option>

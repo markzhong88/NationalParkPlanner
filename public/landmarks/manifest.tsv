@@ -12,27 +12,62 @@ half-dome	SKIP
 el-cap	SKIP
 sequoia-grove	SKIP
 mcdonald	SKIP
-logan	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Logan_Pass-27527.jpg?width=800
-many	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Many_Glacier_Hotel.jpg?width=800
+logan	SKIP
+many	SKIP
 cadillac	SKIP
 thunder	SKIP
 bass	SKIP
-bear-lake	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Bear_Lake_(50445704286).jpg?width=800
-trail-ridge	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/TrailRidgeRoad.JPG?width=800
-estes	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Sprague_Lake.jpg?width=800
+bear-lake	SKIP
+trail-ridge	SKIP
+estes	SKIP
 cades	SKIP
 clingmans	SKIP
-falls	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Laurel_Falls_GSMNP.jpg?width=800
-delicate	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Delicate_Arch_LaSalle.jpg?width=800
-mesa	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Mesa_Arch.jpg?width=800
-moab	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Landscape_Arch_Utah.jpg?width=800
-hurricane	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Hurricane_Ridge.jpg?width=800
-hoh	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Hoh_Rain_Forest.jpg?width=800
-ruby	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Ruby_Beach_1.jpg?width=800
+falls	SKIP
+delicate	SKIP
+mesa	SKIP
+moab	SKIP
+hurricane	SKIP
+hoh	SKIP
+ruby	SKIP
 jumbo	SKIP
-cholla	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Cholla_Cactus_Garden.jpg?width=800
-tram	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Palm_Springs_Aerial_Tramway.jpg?width=800
+cholla	SKIP
+tram	SKIP
 amphitheater	SKIP
-navajo	FAIL	Error: 400 https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Inspiration_Point_Bryce_Canyon_November_2018_panorama.jpg/800px-Inspiration_Point_Bryce_Canyon_November_2018_panorama.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail
-dunes	OK	https://commons.wikimedia.org/wiki/Special:FilePath/Coral_Pink_Sand_Dunes.jpg?width=800
-navajo	COPY	bryce.jpg
+navajo	SKIP
+dunes	SKIP
+jenny	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Jenny_Lake.jpg?width=800
+snake-river	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Snake_River_Overlook.jpg?width=800
+mormon-row	FAIL	Error: 400 https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Barns_grand_tetons.jpg/800px-Barns_grand_tetons.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail
+paradise	FAIL	Error: summary 404
+reflection	FAIL	Error: summary 404
+narada	FAIL	Error: 400 https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Narada_Falls%2C_Mount_Rainier_National_Park%2C_equirectangular_panorama_02.jpg/800px-Narada_Falls%2C_Mount_Rainier_National_Park%2C_equirectangular_panorama_02.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail
+sherman	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/General_Sherman_tree.jpg?width=800
+moro	FAIL	Error: 400 https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Moro_Rock-View_from_Potwisha.jpg/800px-Moro_Rock-View_from_Potwisha.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail
+grant-grove	FAIL	Error: no image
+badwater	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Badwater_Basin.jpg?width=800
+mesquite	FAIL	Error: 400 https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/DV2_M.jpg/800px-DV2_M.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail
+zabriskie	OK	https://commons.wikimedia.org/wiki/Special:FilePath/Zabriskie_Point.jpg?width=800
+skyline	FAIL	Error: summary 429
+dark-hollow	FAIL	Error: summary 429
+big-meadows	FAIL	Error: summary 429
+brandywine	OK	https://commons.wikimedia.org/wiki/Special:FilePath/Brandywine_Falls.jpg?width=800
+ledges	FAIL	Error: summary 429
+beaver-marsh	FAIL	Error: summary 429
+anhinga	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Anhinga_Trail.jpg?width=800
+shark-valley	FAIL	Error: summary 429
+pahayokee	FAIL	Error: summary 429
+kilauea	OK	https://commons.wikimedia.org/wiki/Special:FilePath/Kilauea.jpg?width=800
+thurston	FAIL	Error: summary 429
+chain-craters	FAIL	Error: summary 429
+pinnacles	FAIL	Error: summary 429
+yellow-mounds	FAIL	Error: summary 429
+rushmore	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Mount_Rushmore.jpg?width=800
+capitol-dome	FAIL	Error: summary 429
+fruita	FAIL	Error: summary 429
+capitol-drive	FAIL	Error: summary 429
+fordyce	FAIL	Error: summary 429
+hot-springs-tower	FAIL	Error: summary 429
+promenade	FAIL	Error: summary 429
+rim-village	FAIL	Error: summary 429
+wizard	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Wizard_Island.jpg?width=800
+phantom-ship	FAIL	Error: summary 429

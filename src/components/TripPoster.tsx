@@ -65,6 +65,9 @@ export function TripPoster({ plan, onReset }: Props) {
               <p className="font-display text-[11px] tracking-[0.2em] text-gold">ITINERARY</p>
               <p className="text-[11px] text-ink/40">{plan.days.length} days</p>
             </div>
+            <p className="mb-2 px-0.5 text-[11px] leading-relaxed text-ink/40">
+              Stays are a base, not a booking. We name a lodge only when rooms inside the park are scarce.
+            </p>
             <div className="relative">
               <div className="pointer-events-none absolute top-6 bottom-6 left-[27px] w-px bg-ink/10" />
               <div className="flex flex-col gap-1">
@@ -74,6 +77,9 @@ export function TripPoster({ plan, onReset }: Props) {
                     day={day}
                     selected={selectedDay === day.day}
                     onSelect={() => pickDay(day.day)}
+                    places={plan.landmarks
+                      .filter((lm) => lm.days?.includes(day.day))
+                      .map((lm) => lm.name)}
                   />
                 ))}
               </div>

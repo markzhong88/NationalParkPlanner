@@ -165,6 +165,9 @@ export function ArtisticMap({ plan, selectedDay, onSelectDay }: Props) {
           e.stopPropagation();
           pickDays(days);
         });
+        wrap.querySelector("img")?.addEventListener("error", () => {
+          wrap.classList.add("is-missing-photo");
+        });
         markers.push(
           new maplibregl.Marker({ element: wrap, anchor: "center" })
             .setLngLat([lm.coord.lng, lm.coord.lat])
@@ -249,9 +252,10 @@ function applyMapSelection(
   root.querySelectorAll<HTMLElement>("[data-days]").forEach((el) => {
     const days = parseDays(el.dataset.days);
     const isPhoto = el.classList.contains("photo-callout");
+    const isViewpoint = el.classList.contains("viewpoint-pin");
     const isStay = stayStop != null && el.dataset.stopId === stayStop.id;
     const isFrom = fromStop != null && el.dataset.stopId === fromStop.id && !isStay;
-    const on = isPhoto
+    const on = isPhoto || isViewpoint
       ? selectedDay != null && days.includes(selectedDay)
       : isStay;
     el.classList.toggle("is-active", on);
