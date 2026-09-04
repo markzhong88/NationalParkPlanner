@@ -4,7 +4,7 @@ import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
 import path from "node:path";
 
-const UA = "Parkpath/0.1 (local national park planner demo)";
+const UA = "Rimfold/0.1 (local national park planner demo)";
 const OUT = path.resolve("public/landmarks");
 
 const ARTICLES = {

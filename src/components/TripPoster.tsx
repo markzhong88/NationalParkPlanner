@@ -10,7 +10,7 @@ type Props = {
 };
 
 export function TripPoster({ plan, onReset }: Props) {
-  const [selectedDay, setSelectedDay] = useState<number>(plan.days[0]?.day ?? 1);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const skipScroll = useRef(true);
 
   useEffect(() => {
@@ -18,13 +18,14 @@ export function TripPoster({ plan, onReset }: Props) {
       skipScroll.current = false;
       return;
     }
+    if (selectedDay == null) return;
     document
       .getElementById(`day-card-${selectedDay}`)
       ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [selectedDay]);
 
   const pickDay = (day: number) => {
-    setSelectedDay(day);
+    setSelectedDay((current) => (current === day ? null : day));
     if (window.matchMedia("(max-width: 1023px)").matches) {
       document.querySelector(".map-canvas")?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
@@ -35,7 +36,7 @@ export function TripPoster({ plan, onReset }: Props) {
       <div className="mx-auto grid max-w-[1680px] grid-cols-1 gap-6 p-4 lg:grid-cols-[380px_minmax(0,1fr)] lg:p-6 xl:grid-cols-[400px_minmax(0,1fr)]">
         <aside className="poster-scroll flex flex-col gap-5 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pr-2">
           <div className="no-print flex items-center justify-between">
-            <p className="font-display text-[11px] tracking-[0.32em] text-gold">PARKPATH</p>
+            <p className="font-display text-[11px] tracking-[0.32em] text-gold">RIMFOLD</p>
             <button
               type="button"
               onClick={onReset}

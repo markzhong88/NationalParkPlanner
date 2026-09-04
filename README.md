@@ -1,6 +1,6 @@
-# Parkpath — National Park Trip Planner
+# Rimfold — National Park Trip Planner
 
-MVP website that turns a few trip details into a daily itinerary and an artistic route map.
+MVP website that turns a few trip details into a daily itinerary and an artistic route map. Named for the Grand Canyon rim and the folded poster from the first family trip.
 
 ## Run locally
 

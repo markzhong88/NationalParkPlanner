@@ -30,6 +30,10 @@ export function App() {
   const [plan, setPlan] = useState<TripPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const goHome = () => {
+    setStatus("form");
+  };
+
   const parkName = useMemo(
     () => getPark(input.parkId)?.shortName ?? "national park",
     [input.parkId],
@@ -58,7 +62,7 @@ export function App() {
   }
 
   if (status === "ready" && plan) {
-    return <TripPoster plan={plan} onReset={() => setStatus("form")} />;
+    return <TripPoster plan={plan} onReset={goHome} />;
   }
 
   return (

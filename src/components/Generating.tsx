@@ -8,7 +8,7 @@ const STEPS = [
 export function Generating({ parkName }: { parkName: string }) {
   return (
     <div className="paper-grid flex min-h-screen flex-col items-center justify-center px-6">
-      <p className="font-display text-sm tracking-[0.28em] text-gold">PARKPATH</p>
+      <p className="font-display text-sm tracking-[0.28em] text-gold">RIMFOLD</p>
       <h1 className="mt-4 max-w-lg text-center font-display text-4xl uppercase leading-none tracking-wide text-pine sm:text-5xl">
         Drawing your {parkName} trip
       </h1>
