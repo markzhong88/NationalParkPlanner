@@ -1,0 +1,38 @@
+cathedral-rock	SKIP
+horseshoe-bend	SKIP
+antelope	SKIP
+south-rim	SKIP
+zion-narrows	SKIP
+angels-landing	SKIP
+bryce	SKIP
+old-faithful	SKIP
+prismatic	SKIP
+tetons	SKIP
+half-dome	SKIP
+el-cap	SKIP
+sequoia-grove	SKIP
+mcdonald	SKIP
+logan	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Logan_Pass-27527.jpg?width=800
+many	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Many_Glacier_Hotel.jpg?width=800
+cadillac	SKIP
+thunder	SKIP
+bass	SKIP
+bear-lake	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Bear_Lake_(50445704286).jpg?width=800
+trail-ridge	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/TrailRidgeRoad.JPG?width=800
+estes	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Sprague_Lake.jpg?width=800
+cades	SKIP
+clingmans	SKIP
+falls	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Laurel_Falls_GSMNP.jpg?width=800
+delicate	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Delicate_Arch_LaSalle.jpg?width=800
+mesa	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Mesa_Arch.jpg?width=800
+moab	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Landscape_Arch_Utah.jpg?width=800
+hurricane	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Hurricane_Ridge.jpg?width=800
+hoh	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Hoh_Rain_Forest.jpg?width=800
+ruby	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Ruby_Beach_1.jpg?width=800
+jumbo	SKIP
+cholla	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Cholla_Cactus_Garden.jpg?width=800
+tram	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Palm_Springs_Aerial_Tramway.jpg?width=800
+amphitheater	SKIP
+navajo	FAIL	Error: 400 https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Inspiration_Point_Bryce_Canyon_November_2018_panorama.jpg/800px-Inspiration_Point_Bryce_Canyon_November_2018_panorama.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail
+dunes	OK	https://commons.wikimedia.org/wiki/Special:FilePath/Coral_Pink_Sand_Dunes.jpg?width=800
+navajo	COPY	bryce.jpg
