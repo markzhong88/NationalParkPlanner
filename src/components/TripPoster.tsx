@@ -1,8 +1,20 @@
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { TripPlan } from "../types";
 import { DayCard } from "./DayCard";
-import { ArtisticMap } from "./ArtisticMap";
+import { ArtisticMap, type ArtisticMapHandle } from "./ArtisticMap";
 import { CostCard } from "./CostCard";
+import { PrintPoster } from "./PrintPoster";
+import {
+  captureNodeJpeg,
+  captureNodePng,
+  downloadBlob,
+  downloadDataUrl,
+  jpegDataUrlToPdf,
+  posterFilename,
+  waitForImage,
+  waitFrames,
+} from "../lib/exportPoster";
 
 type Props = {
   plan: TripPlan;
@@ -11,7 +23,12 @@ type Props = {
 
 export function TripPoster({ plan, onReset }: Props) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [mapImage, setMapImage] = useState<string | null>(null);
+  const [busy, setBusy] = useState<"png" | "pdf" | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const skipScroll = useRef(true);
+  const mapRef = useRef<ArtisticMapHandle>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (skipScroll.current) {
@@ -24,6 +41,11 @@ export function TripPoster({ plan, onReset }: Props) {
       ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [selectedDay]);
 
+  useEffect(() => {
+    document.body.classList.toggle("has-print-sheet", Boolean(mapImage));
+    return () => document.body.classList.remove("has-print-sheet");
+  }, [mapImage]);
+
   const pickDay = (day: number) => {
     setSelectedDay((current) => (current === day ? null : day));
     if (window.matchMedia("(max-width: 1023px)").matches) {
@@ -31,20 +53,74 @@ export function TripPoster({ plan, onReset }: Props) {
     }
   };
 
+  const prepareSheet = async () => {
+    const shot = await mapRef.current?.snapshot();
+    if (!shot) throw new Error("The map is still drawing.");
+    flushSync(() => setMapImage(shot));
+    await waitFrames(2);
+    const img = sheetRef.current?.querySelector<HTMLImageElement>("img[data-print-map]");
+    if (img) await waitForImage(img);
+    await waitFrames(1);
+    const sheet = sheetRef.current;
+    if (!sheet) throw new Error("Couldn’t build the poster.");
+    return { sheet, mapImage: shot };
+  };
+
+  const exportPoster = async (kind: "png" | "pdf") => {
+    if (busy) return;
+    setBusy(kind);
+    setExportError(null);
+    try {
+      const { sheet, mapImage: shot } = await prepareSheet();
+      if (kind === "png") {
+        downloadDataUrl(await captureNodePng(sheet, shot), posterFilename(plan, "png"));
+        return;
+      }
+      const jpeg = await captureNodeJpeg(sheet, shot);
+      downloadBlob(await jpegDataUrlToPdf(jpeg), posterFilename(plan, "pdf"));
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Couldn’t export the poster.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <div className="paper-grid min-h-screen">
-      <div className="mx-auto grid max-w-[1680px] grid-cols-1 gap-6 p-4 lg:grid-cols-[380px_minmax(0,1fr)] lg:p-6 xl:grid-cols-[400px_minmax(0,1fr)]">
+      <div className="screen-app mx-auto grid max-w-[1680px] grid-cols-1 gap-6 p-4 lg:grid-cols-[380px_minmax(0,1fr)] lg:p-6 xl:grid-cols-[400px_minmax(0,1fr)]">
         <aside className="poster-scroll flex flex-col gap-5 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pr-2">
-          <div className="no-print flex items-center justify-between">
+          <div className="no-print flex flex-wrap items-center justify-between gap-3">
             <p className="font-display text-[11px] tracking-[0.32em] text-gold">RIMFOLD</p>
-            <button
-              type="button"
-              onClick={onReset}
-              className="text-[12px] font-medium text-pine/80 underline decoration-gold/60 underline-offset-4 transition hover:text-pine"
-            >
-              Plan another trip
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={busy != null}
+                onClick={() => void exportPoster("png")}
+                className="rounded-full bg-pine px-3 py-1.5 text-[12px] font-medium text-[#f4efe4] transition hover:bg-pine/90 disabled:opacity-50"
+              >
+                {busy === "png" ? "Preparing…" : "Download image"}
+              </button>
+              <button
+                type="button"
+                disabled={busy != null}
+                onClick={() => void exportPoster("pdf")}
+                className="rounded-full px-3 py-1.5 text-[12px] font-medium text-pine ring-1 ring-pine/20 transition hover:bg-white/60 disabled:opacity-50"
+              >
+                {busy === "pdf" ? "Preparing…" : "Download PDF"}
+              </button>
+              <button
+                type="button"
+                onClick={onReset}
+                className="text-[12px] font-medium text-pine/80 underline decoration-gold/60 underline-offset-4 transition hover:text-pine"
+              >
+                Plan another trip
+              </button>
+            </div>
           </div>
+
+          {exportError ? (
+            <p className="no-print rounded-lg bg-[#9f1239] px-3 py-2 text-[12px] text-white">{exportError}</p>
+          ) : null}
 
           <header className="px-0.5">
             <h1 className="font-serif text-[34px] leading-[1.05] text-pine">
@@ -59,7 +135,11 @@ export function TripPoster({ plan, onReset }: Props) {
             <p className="mt-4 text-[13px] leading-relaxed text-ink-soft">{plan.styleNote}</p>
           </header>
 
-          {plan.cost ? <CostCard cost={plan.cost} /> : null}
+          {plan.cost ? (
+            <div className="no-print">
+              <CostCard cost={plan.cost} />
+            </div>
+          ) : null}
 
           <section>
             <div className="mb-2 flex items-baseline justify-between px-0.5">
@@ -88,9 +168,10 @@ export function TripPoster({ plan, onReset }: Props) {
           </section>
         </aside>
         <section className="min-h-[560px] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)]">
-          <ArtisticMap plan={plan} selectedDay={selectedDay} onSelectDay={pickDay} />
+          <ArtisticMap ref={mapRef} plan={plan} selectedDay={selectedDay} onSelectDay={pickDay} />
         </section>
       </div>
+      <PrintPoster plan={plan} mapImage={mapImage} sheetRef={sheetRef} />
     </div>
   );
 }

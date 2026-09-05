@@ -97,7 +97,7 @@ export function PlannerForm({ value, onChange, onSubmit, onDemo }: Props) {
         onClick={onDemo}
         className="text-sm font-medium text-pine underline decoration-gold/80 underline-offset-4 hover:decoration-pine"
       >
-        Try the Arizona family road trip
+        Try Grand Canyon Family Road Trip
       </button>
     </form>
   );

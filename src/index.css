@@ -271,11 +271,47 @@ button {
   font-family: inherit;
 }
 
+.print-poster {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  width: 1056px;
+  height: 1632px;
+  box-sizing: border-box;
+  flex-direction: column;
+  padding: 28px 28px 24px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 @media print {
-  body {
-    background: white;
+  @page {
+    size: 11in 17in;
+    margin: 0;
   }
+
+  body {
+    background: #f3ede0 !important;
+  }
+
   .no-print {
     display: none !important;
+  }
+
+  body.has-print-sheet .screen-app {
+    display: none !important;
+  }
+
+  body.has-print-sheet .print-poster {
+    position: static;
+    left: auto;
+    z-index: auto;
+    width: 11in;
+    height: 17in;
+    opacity: 1;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }

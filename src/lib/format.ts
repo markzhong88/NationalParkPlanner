@@ -15,11 +15,9 @@ export function formatDateRange(start: Date, days: number): string {
 }
 
 export function formatDayHeading(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  const weekday = date.toLocaleDateString("en-US", { weekday: "short" });
+  const month = date.toLocaleDateString("en-US", { month: "short" });
+  return `${weekday}, ${month} ${date.getDate()}`;
 }
 
 export function addDays(date: Date, days: number): Date {

@@ -5,6 +5,30 @@ export type LineStringGeometry = {
   coordinates: [number, number][];
 };
 
+const EXPORT_W = 1920;
+const ASPECT_MIN = 1.38;
+const ASPECT_MAX = 1.72;
+
+export type LngLatBoundsBox = {
+  minLng: number;
+  maxLng: number;
+  minLat: number;
+  maxLat: number;
+};
+
+export function exportMapAspect(bounds: LngLatBoundsBox): number {
+  const lngSpan = Math.max(0.18, bounds.maxLng - bounds.minLng);
+  const latSpan = Math.max(0.14, bounds.maxLat - bounds.minLat);
+  const midLat = ((bounds.minLat + bounds.maxLat) / 2) * (Math.PI / 180);
+  const geo = (lngSpan * Math.cos(midLat)) / latSpan;
+  return Math.min(ASPECT_MAX, Math.max(ASPECT_MIN, geo));
+}
+
+export function exportMapViewport(bounds: LngLatBoundsBox): { width: number; height: number } {
+  const aspect = exportMapAspect(bounds);
+  return { width: EXPORT_W, height: Math.round(EXPORT_W / aspect) };
+}
+
 export function haversineMiles(a: Coordinates, b: Coordinates): number {
   const R = 3958.8;
   const dLat = toRad(b.lat - a.lat);

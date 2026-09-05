@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import type { GeoJSONSource } from "maplibre-gl";
-import type { Coordinates, TripPlan } from "../types";
+import type { Coordinates, Landmark, TripPlan } from "../types";
 import { DrivingSummary } from "./DrivingSummary";
+import { exportMapViewport } from "../lib/geo";
 
 type Props = {
   plan: TripPlan;
@@ -10,13 +11,27 @@ type Props = {
   onSelectDay: (day: number) => void;
 };
 
-export function ArtisticMap({ plan, selectedDay, onSelectDay }: Props) {
+export type ArtisticMapHandle = {
+  snapshot: () => Promise<string>;
+};
+
+export const ArtisticMap = forwardRef<ArtisticMapHandle, Props>(function ArtisticMap(
+  { plan, selectedDay, onSelectDay },
+  ref,
+) {
+  const wrapRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const planRef = useRef(plan);
   const selectRef = useRef(onSelectDay);
   const selectedRef = useRef(selectedDay);
+  planRef.current = plan;
   selectRef.current = onSelectDay;
   selectedRef.current = selectedDay;
+
+  useImperativeHandle(ref, () => ({
+    snapshot: () => snapshotMap(mapRef.current, wrapRef.current, planRef.current, selectedRef.current),
+  }));
 
   useEffect(() => {
     const node = containerRef.current;
@@ -47,6 +62,8 @@ export function ArtisticMap({ plan, selectedDay, onSelectDay }: Props) {
         maxZoom: wideTrip(plan) ? 6.6 : 8.6,
       },
       attributionControl: { compact: true },
+      canvasContextAttributes: { preserveDrawingBuffer: true, antialias: true },
+      fadeDuration: 0,
     });
     mapRef.current = map;
     const markers: maplibregl.Marker[] = [];
@@ -203,7 +220,10 @@ export function ArtisticMap({ plan, selectedDay, onSelectDay }: Props) {
   }, [selectedDay, plan]);
 
   return (
-    <div className="relative h-full min-h-[560px] overflow-hidden rounded-2xl bg-paper-deep shadow-[0_24px_60px_rgba(26,35,50,0.12)] ring-1 ring-ink/10">
+    <div
+      ref={wrapRef}
+      className="map-export-root relative h-full min-h-[560px] overflow-hidden rounded-2xl bg-paper-deep shadow-[0_24px_60px_rgba(26,35,50,0.12)] ring-1 ring-ink/10"
+    >
       <div ref={containerRef} className="map-canvas h-full min-h-[560px] w-full" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_58%,rgba(243,237,224,0.34))]" />
       <div className="pointer-events-none absolute top-4 left-4 max-w-sm">
@@ -227,6 +247,543 @@ export function ArtisticMap({ plan, selectedDay, onSelectDay }: Props) {
       </div>
     </div>
   );
+});
+
+async function snapshotMap(
+  map: maplibregl.Map | null,
+  root: HTMLDivElement | null,
+  plan: TripPlan,
+  selectedDay: number | null,
+): Promise<string> {
+  if (!map || !root) throw new Error("The map is still drawing.");
+
+  applyMapSelection(root, map, plan, null, false);
+  const camera = {
+    center: map.getCenter(),
+    zoom: map.getZoom(),
+    bearing: map.getBearing(),
+    pitch: map.getPitch(),
+  };
+  const canvasNode = root.querySelector(".map-canvas") as HTMLElement | null;
+  const view = exportMapViewport(plan.bounds);
+  const restore = stageExportViewport(root, canvasNode, view.width, view.height);
+  const pixelRatio = map.getPixelRatio();
+
+  try {
+    map.setPixelRatio(Math.max(2, pixelRatio));
+    await sizeMapForExport(map, view.width, view.height);
+    frameExportCamera(map, plan);
+    await whenMapIdle(map);
+    frameExportCamera(map, plan);
+    await whenMapIdle(map);
+    map.triggerRepaint();
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    return await rasterizeMap(map, plan);
+  } catch {
+    throw new Error("Couldn’t capture the map. Try again after it finishes loading.");
+  } finally {
+    restore();
+    map.setPixelRatio(pixelRatio);
+    map.resize();
+    map.jumpTo(camera);
+    applyMapSelection(root, map, plan, selectedDay, false);
+  }
+}
+
+function stageExportViewport(
+  root: HTMLElement,
+  canvasNode: HTMLElement | null,
+  width: number,
+  height: number,
+) {
+  const prevRoot = root.getAttribute("style");
+  const prevCanvas = canvasNode?.getAttribute("style") ?? null;
+  const parent = root.parentElement;
+  const holder = document.createElement("div");
+  holder.style.width = "100%";
+  holder.style.height = `${root.getBoundingClientRect().height}px`;
+  parent?.insertBefore(holder, root);
+
+  root.style.position = "fixed";
+  root.style.left = "0";
+  root.style.top = "0";
+  root.style.width = `${width}px`;
+  root.style.height = `${height}px`;
+  root.style.minHeight = `${height}px`;
+  root.style.opacity = "1";
+  root.style.zIndex = "0";
+  root.style.pointerEvents = "none";
+  root.style.clipPath = "inset(0 calc(100% - 1px) calc(100% - 1px) 0)";
+  if (canvasNode) {
+    canvasNode.style.width = `${width}px`;
+    canvasNode.style.height = `${height}px`;
+    canvasNode.style.minHeight = `${height}px`;
+  }
+  return () => {
+    holder.remove();
+    if (prevRoot == null || prevRoot === "") root.removeAttribute("style");
+    else root.setAttribute("style", prevRoot);
+    if (canvasNode) {
+      if (prevCanvas == null || prevCanvas === "") canvasNode.removeAttribute("style");
+      else canvasNode.setAttribute("style", prevCanvas);
+    }
+  };
+}
+
+async function sizeMapForExport(map: maplibregl.Map, width: number, height: number) {
+  const node = map.getContainer();
+  for (let i = 0; i < 12; i++) {
+    void node.offsetWidth;
+    void node.offsetHeight;
+    map.resize();
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    if (Math.abs(node.clientWidth - width) < 3 && Math.abs(node.clientHeight - height) < 3) {
+      return;
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 40));
+  }
+}
+
+function frameExportCamera(map: maplibregl.Map, plan: TripPlan) {
+  map.resize();
+  const padding = { top: 56, left: 72, right: 72, bottom: 56 };
+  const bounds = exportBounds(plan);
+  const camera = map.cameraForBounds(bounds, {
+    padding,
+    maxZoom: 10.4,
+  });
+  if (camera) {
+    map.jumpTo({ center: camera.center, zoom: camera.zoom, bearing: 0, pitch: 0 });
+    return;
+  }
+  map.fitBounds(bounds, { padding, maxZoom: 10.4, duration: 0 });
+}
+
+function exportBounds(plan: TripPlan): [[number, number], [number, number]] {
+  const lngs = [plan.bounds.minLng, plan.bounds.maxLng];
+  const lats = [plan.bounds.minLat, plan.bounds.maxLat];
+  for (const stop of plan.mapStops) {
+    lngs.push(stop.coord.lng);
+    lats.push(stop.coord.lat);
+  }
+  for (const lm of plan.landmarks) {
+    lngs.push(lm.coord.lng);
+    lats.push(lm.coord.lat);
+  }
+  lngs.push(plan.startPoint.coord.lng, plan.endPoint.coord.lng);
+  lats.push(plan.startPoint.coord.lat, plan.endPoint.coord.lat);
+  for (const [lng, lat] of plan.routeGeometry) {
+    lngs.push(lng);
+    lats.push(lat);
+  }
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const lngSpan = Math.max(0.18, maxLng - minLng);
+  const latSpan = Math.max(0.14, maxLat - minLat);
+  const padLng = lngSpan * 0.1;
+  const padLat = latSpan * 0.12;
+  return [
+    [minLng - padLng, minLat - padLat],
+    [maxLng + padLng, maxLat + padLat],
+  ];
+}
+
+function whenMapIdle(map: maplibregl.Map): Promise<void> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    const timer = window.setTimeout(done, 3600);
+    map.once("idle", () => {
+      window.clearTimeout(timer);
+      done();
+    });
+    map.triggerRepaint();
+  });
+}
+
+async function rasterizeMap(map: maplibregl.Map, plan: TripPlan): Promise<string> {
+  const gl = map.getCanvas();
+  const src = document.createElement("canvas");
+  src.width = Math.max(1, gl.width || Math.round(gl.clientWidth * (window.devicePixelRatio || 1)));
+  src.height = Math.max(1, gl.height || Math.round(gl.clientHeight * (window.devicePixelRatio || 1)));
+  const srcCtx = src.getContext("2d");
+  if (!srcCtx) throw new Error("Couldn’t capture the map.");
+  srcCtx.fillStyle = "#e7dcc8";
+  srcCtx.fillRect(0, 0, src.width, src.height);
+
+  const fromGl = await paintGlFrame(map, src, srcCtx);
+  if (!fromGl) {
+    await paintEsriBasemap(map, src, srcCtx);
+    drawRoute(map, plan, src, srcCtx);
+  }
+
+  const fit = { x: 0, y: 0, w: src.width, h: src.height };
+  const plot = plotter(map, src, fit);
+  drawStops(plan, srcCtx, plot);
+  await drawLandmarkPhotos(plan, src, srcCtx, plot);
+  return src.toDataURL("image/jpeg", 0.95);
+}
+
+function paintGlFrame(
+  map: maplibregl.Map,
+  copy: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    const finish = () => {
+      const gl = map.getCanvas();
+      try {
+        ctx.drawImage(gl, 0, 0, copy.width, copy.height);
+        copy.toDataURL("image/jpeg", 0.5);
+        resolve(!isMostlyBlank(ctx, copy.width, copy.height));
+      } catch {
+        resolve(false);
+      }
+    };
+    map.triggerRepaint();
+    requestAnimationFrame(() => requestAnimationFrame(finish));
+  });
+}
+
+async function paintEsriBasemap(
+  map: maplibregl.Map,
+  copy: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+) {
+  const gl = map.getCanvas();
+  const width = gl.clientWidth || copy.width;
+  const height = gl.clientHeight || copy.height;
+  const nw = map.unproject([0, 0]);
+  const se = map.unproject([width, height]);
+  const [minX, maxY] = lngLatToMercator(nw.lng, nw.lat);
+  const [maxX, minY] = lngLatToMercator(se.lng, se.lat);
+  const sizeW = Math.min(2048, Math.max(256, copy.width));
+  const sizeH = Math.min(2048, Math.max(256, copy.height));
+  const url = [
+    "https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/export",
+    `?bbox=${minX},${minY},${maxX},${maxY}`,
+    "&bboxSR=3857&imageSR=3857",
+    `&size=${Math.round(sizeW)},${Math.round(sizeH)}`,
+    "&format=jpg&f=image",
+  ].join("");
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Couldn’t capture the map.");
+  const blob = await res.blob();
+  const src = URL.createObjectURL(blob);
+  try {
+    const img = await loadHtmlImage(src);
+    ctx.drawImage(img, 0, 0, copy.width, copy.height);
+  } finally {
+    URL.revokeObjectURL(src);
+  }
+}
+
+function drawRoute(
+  map: maplibregl.Map,
+  plan: TripPlan,
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+) {
+  const coords = plan.routeGeometry;
+  if (coords.length < 2) return;
+  const { sx, sy } = canvasScale(map, canvas);
+  ctx.save();
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  coords.forEach((c, i) => {
+    const p = map.project(c);
+    if (i === 0) ctx.moveTo(p.x * sx, p.y * sy);
+    else ctx.lineTo(p.x * sx, p.y * sy);
+  });
+  ctx.strokeStyle = "rgba(138,164,196,0.45)";
+  ctx.lineWidth = 8 * sx;
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(61,92,122,0.92)";
+  ctx.lineWidth = 3.5 * sx;
+  ctx.stroke();
+  ctx.restore();
+}
+
+type Plotter = {
+  point: (lng: number, lat: number) => { x: number; y: number };
+  unit: number;
+};
+
+function plotter(
+  map: maplibregl.Map,
+  src: HTMLCanvasElement,
+  fit: { x: number; y: number; w: number; h: number },
+): Plotter {
+  const gl = map.getCanvas();
+  const sx = src.width / Math.max(1, gl.clientWidth);
+  const sy = src.height / Math.max(1, gl.clientHeight);
+  const scaleX = fit.w / src.width;
+  const scaleY = fit.h / src.height;
+  return {
+    unit: (sx * scaleX + sy * scaleY) / 2,
+    point: (lng, lat) => {
+      const p = map.project([lng, lat]);
+      return {
+        x: p.x * sx * scaleX + fit.x,
+        y: p.y * sy * scaleY + fit.y,
+      };
+    },
+  };
+}
+
+function drawStops(plan: TripPlan, ctx: CanvasRenderingContext2D, plot: Plotter) {
+  const u = plot.unit;
+  ctx.save();
+  ctx.font = `600 ${Math.round(12 * u)}px "DM Sans", sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  for (const stop of plan.mapStops) {
+    const { x, y } = plot.point(stop.coord.lng, stop.coord.lat);
+    ctx.beginPath();
+    ctx.arc(x, y, 7 * u, 0, Math.PI * 2);
+    ctx.fillStyle = "#1f3a2e";
+    ctx.fill();
+    ctx.lineWidth = 2.5 * u;
+    ctx.strokeStyle = "#fffdf8";
+    ctx.stroke();
+    ctx.lineJoin = "round";
+    ctx.miterLimit = 2;
+    ctx.lineWidth = 3.5 * u;
+    ctx.strokeStyle = "rgba(243,237,224,0.94)";
+    ctx.strokeText(stop.name, x, y + 12 * u);
+    ctx.fillStyle = "rgba(26,35,50,0.88)";
+    ctx.fillText(stop.name, x, y + 12 * u);
+  }
+  ctx.restore();
+}
+
+async function drawLandmarkPhotos(
+  plan: TripPlan,
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  plot: Plotter,
+) {
+  const picks = pickExportPhotos(plan.landmarks, 4);
+  if (!picks.length) return;
+  const u = plot.unit;
+  const cardW = 110 * u;
+  const photoH = 68 * u;
+  const captionH = 22 * u;
+  const cardH = photoH + captionH;
+  const pad = 14 * u;
+  const placed: { x: number; y: number; w: number; h: number }[] = [];
+
+  for (const lm of picks) {
+    if (!lm.photo) continue;
+    const img = await tryLoadImage(lm.photo);
+    if (!img) continue;
+    const pin = plot.point(lm.coord.lng, lm.coord.lat);
+    const [ox, oy] = lm.offset ?? defaultOffset(lm.id);
+    const rect = placePhotoCard(pin, ox, oy, cardW, cardH, pad, canvas, placed, u);
+    placed.push(rect);
+    const { x: cardX, y: cardY } = rect;
+
+    ctx.beginPath();
+    ctx.arc(pin.x, pin.y, 4.5 * u, 0, Math.PI * 2);
+    ctx.fillStyle = "#c4a574";
+    ctx.fill();
+    ctx.lineWidth = 1.6 * u;
+    ctx.strokeStyle = "#fffdf8";
+    ctx.stroke();
+
+    const edge = nearestRectPoint(pin.x, pin.y, rect);
+    ctx.beginPath();
+    ctx.moveTo(pin.x, pin.y);
+    ctx.lineTo(edge.x, edge.y);
+    ctx.strokeStyle = "rgba(26,35,50,0.55)";
+    ctx.lineWidth = 1.35 * u;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.shadowColor = "rgba(26,35,50,0.22)";
+    ctx.shadowBlur = 16 * u;
+    ctx.shadowOffsetY = 6 * u;
+    roundRectPath(ctx, cardX, cardY, cardW, cardH, 8 * u);
+    ctx.fillStyle = "#fffdf8";
+    ctx.fill();
+    ctx.restore();
+    roundRectPath(ctx, cardX, cardY, cardW, cardH, 8 * u);
+    ctx.lineWidth = 2 * u;
+    ctx.strokeStyle = "rgba(255,255,255,0.95)";
+    ctx.stroke();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardW, photoH, [8 * u, 8 * u, 0, 0]);
+    ctx.clip();
+    const ir = img.naturalWidth / Math.max(1, img.naturalHeight);
+    const cr = cardW / photoH;
+    let dw = cardW;
+    let dh = photoH;
+    let dx = cardX;
+    let dy = cardY;
+    if (ir > cr) {
+      dw = photoH * ir;
+      dx = cardX + (cardW - dw) / 2;
+    } else {
+      dh = cardW / ir;
+      dy = cardY + (photoH - dh) / 2;
+    }
+    ctx.drawImage(img, dx, dy, dw, dh);
+    ctx.restore();
+
+    ctx.font = `600 ${Math.round(11 * u)}px "DM Sans", sans-serif`;
+    ctx.fillStyle = "#1a2332";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    const label = fitLabel(ctx, lm.name, cardW - 16 * u);
+    ctx.fillText(label, cardX + 8 * u, cardY + photoH + captionH / 2);
+  }
+}
+
+function pickExportPhotos(landmarks: Landmark[], max: number): Landmark[] {
+  return landmarks.filter((lm) => lm.photo).slice(0, max);
+}
+
+function placePhotoCard(
+  pin: { x: number; y: number },
+  ox: number,
+  oy: number,
+  cardW: number,
+  cardH: number,
+  pad: number,
+  canvas: HTMLCanvasElement,
+  placed: { x: number; y: number; w: number; h: number }[],
+  u: number,
+) {
+  const inwardX = pin.x > canvas.width / 2 ? -150 : 150;
+  const inwardY = pin.y > canvas.height / 2 ? -70 : 80;
+  const tries: [number, number][] = [
+    [inwardX, inwardY],
+    [ox, oy],
+    [-ox, oy],
+    [ox, -oy],
+    [-ox, -oy],
+    [inwardX, -inwardY],
+    [-130, -40],
+    [130, -40],
+    [-130, 50],
+    [130, 50],
+    [0, -120],
+    [0, 90],
+  ];
+  for (const [dx, dy] of tries) {
+    const x = clamp(pin.x + dx * u - cardW / 2, pad, canvas.width - cardW - pad);
+    const y = clamp(pin.y + dy * u - cardH * 0.35, pad, canvas.height - cardH - pad);
+    const rect = { x, y, w: cardW, h: cardH };
+    if (!overlapsAny(rect, placed)) return rect;
+  }
+  return {
+    x: clamp(pin.x - cardW / 2, pad, canvas.width - cardW - pad),
+    y: clamp(pin.y - cardH - 12 * u, pad, canvas.height - cardH - pad),
+    w: cardW,
+    h: cardH,
+  };
+}
+
+function overlapsAny(
+  rect: { x: number; y: number; w: number; h: number },
+  others: { x: number; y: number; w: number; h: number }[],
+) {
+  return others.some(
+    (o) =>
+      rect.x < o.x + o.w && rect.x + rect.w > o.x && rect.y < o.y + o.h && rect.y + rect.h > o.y,
+  );
+}
+
+function nearestRectPoint(x: number, y: number, rect: { x: number; y: number; w: number; h: number }) {
+  return {
+    x: clamp(x, rect.x, rect.x + rect.w),
+    y: clamp(y, rect.y, rect.y + rect.h),
+  };
+}
+
+function roundRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, radius);
+}
+
+function fitLabel(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let value = text;
+  while (value.length > 3 && ctx.measureText(`${value}…`).width > maxWidth) {
+    value = value.slice(0, -1);
+  }
+  return `${value}…`;
+}
+
+function clamp(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, n));
+}
+
+function tryLoadImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+function canvasScale(map: maplibregl.Map, canvas: HTMLCanvasElement) {
+  const gl = map.getCanvas();
+  return {
+    sx: canvas.width / Math.max(1, gl.clientWidth),
+    sy: canvas.height / Math.max(1, gl.clientHeight),
+  };
+}
+
+function isMostlyBlank(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  const spots = [
+    [0.5, 0.5],
+    [0.28, 0.28],
+    [0.72, 0.72],
+    [0.5, 0.22],
+    [0.5, 0.78],
+  ].map(([x, y]) => ctx.getImageData(Math.floor(w * x), Math.floor(h * y), 1, 1).data);
+  return spots.every(([r, g, b, a]) => {
+    if (a < 12) return true;
+    const dark = r < 14 && g < 14 && b < 14;
+    const paper = Math.abs(r - 231) < 22 && Math.abs(g - 220) < 22 && Math.abs(b - 200) < 22;
+    return dark || paper;
+  });
+}
+
+function lngLatToMercator(lng: number, lat: number): [number, number] {
+  const x = (lng * 20037508.34) / 180;
+  const clamped = Math.max(-85.05112878, Math.min(85.05112878, lat));
+  const n = Math.log(Math.tan(((90 + clamped) * Math.PI) / 360));
+  const y = (n * 20037508.34) / Math.PI;
+  return [x, y];
+}
+
+function loadHtmlImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Couldn’t capture the map."));
+    img.src = src;
+  });
 }
 
 function applyMapSelection(

@@ -19,7 +19,7 @@ const DEMO: TripInput = {
 
 export function App() {
   const [input, setInput] = useState<TripInput>({
-    home: "Phoenix, AZ",
+    home: "",
     parkId: "grand-canyon",
     adults: 2,
     kids: 2,
