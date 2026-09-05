@@ -6,7 +6,7 @@ export type LineStringGeometry = {
 };
 
 const EXPORT_W = 1920;
-const ASPECT_MIN = 1.38;
+const ASPECT_MIN = 1.2;
 const ASPECT_MAX = 1.72;
 
 export type LngLatBoundsBox = {

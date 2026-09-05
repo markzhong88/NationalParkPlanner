@@ -275,6 +275,7 @@ async function snapshotMap(
     frameExportCamera(map, plan);
     await whenMapIdle(map);
     frameExportCamera(map, plan);
+    hideMapRoute(map);
     await whenMapIdle(map);
     map.triggerRepaint();
     await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
@@ -344,19 +345,26 @@ async function sizeMapForExport(map: maplibregl.Map, width: number, height: numb
   }
 }
 
+function hideMapRoute(map: maplibregl.Map) {
+  for (const id of ["route-line", "route-glow", "day-route-line", "day-route-glow"]) {
+    if (map.getLayer(id)) map.setPaintProperty(id, "line-opacity", 0);
+  }
+}
+
 function frameExportCamera(map: maplibregl.Map, plan: TripPlan) {
   map.resize();
-  const padding = { top: 56, left: 72, right: 72, bottom: 56 };
+  const padding = { top: 52, left: 48, right: 48, bottom: 48 };
   const bounds = exportBounds(plan);
   const camera = map.cameraForBounds(bounds, {
     padding,
-    maxZoom: 10.4,
+    maxZoom: 10.6,
   });
   if (camera) {
-    map.jumpTo({ center: camera.center, zoom: camera.zoom, bearing: 0, pitch: 0 });
+    const zoom = typeof camera.zoom === "number" ? Math.min(10.6, camera.zoom + 0.12) : camera.zoom;
+    map.jumpTo({ center: camera.center, zoom, bearing: 0, pitch: 0 });
     return;
   }
-  map.fitBounds(bounds, { padding, maxZoom: 10.4, duration: 0 });
+  map.fitBounds(bounds, { padding, maxZoom: 10.6, duration: 0 });
 }
 
 function exportBounds(plan: TripPlan): [[number, number], [number, number]] {
@@ -382,8 +390,8 @@ function exportBounds(plan: TripPlan): [[number, number], [number, number]] {
   const maxLat = Math.max(...lats);
   const lngSpan = Math.max(0.18, maxLng - minLng);
   const latSpan = Math.max(0.14, maxLat - minLat);
-  const padLng = lngSpan * 0.1;
-  const padLat = latSpan * 0.12;
+  const padLng = lngSpan * 0.055;
+  const padLat = latSpan * 0.07;
   return [
     [minLng - padLng, minLat - padLat],
     [maxLng + padLng, maxLat + padLat],
@@ -420,8 +428,8 @@ async function rasterizeMap(map: maplibregl.Map, plan: TripPlan): Promise<string
   const fromGl = await paintGlFrame(map, src, srcCtx);
   if (!fromGl) {
     await paintEsriBasemap(map, src, srcCtx);
-    drawRoute(map, plan, src, srcCtx);
   }
+  drawRoute(map, plan, src, srcCtx);
 
   const fit = { x: 0, y: 0, w: src.width, h: src.height };
   const plot = plotter(map, src, fit);
@@ -502,11 +510,11 @@ function drawRoute(
     if (i === 0) ctx.moveTo(p.x * sx, p.y * sy);
     else ctx.lineTo(p.x * sx, p.y * sy);
   });
-  ctx.strokeStyle = "rgba(138,164,196,0.45)";
-  ctx.lineWidth = 8 * sx;
+  ctx.strokeStyle = "rgba(138,164,196,0.55)";
+  ctx.lineWidth = 16 * sx;
   ctx.stroke();
-  ctx.strokeStyle = "rgba(61,92,122,0.92)";
-  ctx.lineWidth = 3.5 * sx;
+  ctx.strokeStyle = "rgba(45,78,112,0.96)";
+  ctx.lineWidth = 7.5 * sx;
   ctx.stroke();
   ctx.restore();
 }
@@ -541,13 +549,13 @@ function plotter(
 function drawStops(plan: TripPlan, ctx: CanvasRenderingContext2D, plot: Plotter) {
   const u = plot.unit;
   ctx.save();
-  ctx.font = `600 ${Math.round(12 * u)}px "DM Sans", sans-serif`;
+    ctx.font = `600 ${Math.round(13.5 * u)}px "DM Sans", sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   for (const stop of plan.mapStops) {
     const { x, y } = plot.point(stop.coord.lng, stop.coord.lat);
     ctx.beginPath();
-    ctx.arc(x, y, 7 * u, 0, Math.PI * 2);
+    ctx.arc(x, y, 8.5 * u, 0, Math.PI * 2);
     ctx.fillStyle = "#1f3a2e";
     ctx.fill();
     ctx.lineWidth = 2.5 * u;
@@ -573,9 +581,9 @@ async function drawLandmarkPhotos(
   const picks = pickExportPhotos(plan.landmarks, 4);
   if (!picks.length) return;
   const u = plot.unit;
-  const cardW = 110 * u;
-  const photoH = 68 * u;
-  const captionH = 22 * u;
+  const cardW = 168 * u;
+  const photoH = 104 * u;
+  const captionH = 26 * u;
   const cardH = photoH + captionH;
   const pad = 14 * u;
   const placed: { x: number; y: number; w: number; h: number }[] = [];
@@ -591,7 +599,7 @@ async function drawLandmarkPhotos(
     const { x: cardX, y: cardY } = rect;
 
     ctx.beginPath();
-    ctx.arc(pin.x, pin.y, 4.5 * u, 0, Math.PI * 2);
+    ctx.arc(pin.x, pin.y, 5.5 * u, 0, Math.PI * 2);
     ctx.fillStyle = "#c4a574";
     ctx.fill();
     ctx.lineWidth = 1.6 * u;
@@ -639,7 +647,7 @@ async function drawLandmarkPhotos(
     ctx.drawImage(img, dx, dy, dw, dh);
     ctx.restore();
 
-    ctx.font = `600 ${Math.round(11 * u)}px "DM Sans", sans-serif`;
+    ctx.font = `600 ${Math.round(12.5 * u)}px "DM Sans", sans-serif`;
     ctx.fillStyle = "#1a2332";
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
@@ -663,8 +671,8 @@ function placePhotoCard(
   placed: { x: number; y: number; w: number; h: number }[],
   u: number,
 ) {
-  const inwardX = pin.x > canvas.width / 2 ? -150 : 150;
-  const inwardY = pin.y > canvas.height / 2 ? -70 : 80;
+  const inwardX = pin.x > canvas.width / 2 ? -188 : 188;
+  const inwardY = pin.y > canvas.height / 2 ? -88 : 98;
   const tries: [number, number][] = [
     [inwardX, inwardY],
     [ox, oy],
@@ -672,12 +680,12 @@ function placePhotoCard(
     [ox, -oy],
     [-ox, -oy],
     [inwardX, -inwardY],
-    [-130, -40],
-    [130, -40],
-    [-130, 50],
-    [130, 50],
-    [0, -120],
-    [0, 90],
+    [-160, -48],
+    [160, -48],
+    [-160, 58],
+    [160, 58],
+    [0, -140],
+    [0, 108],
   ];
   for (const [dx, dy] of tries) {
     const x = clamp(pin.x + dx * u - cardW / 2, pad, canvas.width - cardW - pad);

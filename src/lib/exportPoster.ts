@@ -121,12 +121,6 @@ async function pasteMapOntoPoster(
     const w = slotBox.width * scaleX;
     const h = slotBox.height * scaleY;
     drawContain(ctx, map, x, y, w, h);
-    ctx.fillStyle = "rgba(31, 58, 46, 0.55)";
-    ctx.font = `${Math.round(10 * scaleX)}px Oswald, sans-serif`;
-    ctx.letterSpacing = `${2.8 * scaleX}px`;
-    ctx.textAlign = "left";
-    ctx.textBaseline = "bottom";
-    ctx.fillText("RIMFOLD", x + 12 * scaleX, y + h - 12 * scaleY);
   }
 
   return kind === "png" ? canvas.toDataURL("image/png") : canvas.toDataURL("image/jpeg", 0.95);
