@@ -433,7 +433,7 @@ async function rasterizeMap(map: maplibregl.Map, plan: TripPlan): Promise<string
 
   const fit = { x: 0, y: 0, w: src.width, h: src.height };
   const plot = plotter(map, src, fit);
-  drawStops(plan, srcCtx, plot);
+  drawStops(plan, srcCtx, plot, src);
   await drawLandmarkPhotos(plan, src, srcCtx, plot);
   return src.toDataURL("image/jpeg", 0.95);
 }
@@ -546,28 +546,56 @@ function plotter(
   };
 }
 
-function drawStops(plan: TripPlan, ctx: CanvasRenderingContext2D, plot: Plotter) {
-  const u = plot.unit;
+function exportOverlayMetrics(canvas: HTMLCanvasElement) {
+  const w = canvas.width;
+  const cardW = Math.round(w * 0.2);
+  const photoH = Math.round(cardW * 0.6);
+  const captionH = Math.round(cardW * 0.3);
+  const font = Math.round(cardW * 0.128);
+  return {
+    cardW,
+    photoH,
+    captionH,
+    cardH: photoH + captionH,
+    font,
+    lineH: Math.round(font * 1.18),
+    pad: Math.round(w * 0.032),
+    radius: Math.round(cardW * 0.05),
+    pinR: Math.round(cardW * 0.032),
+    pinStroke: Math.round(cardW * 0.012),
+    leader: Math.max(4, Math.round(cardW * 0.014)),
+    stopR: Math.round(w * 0.008),
+    stopFont: Math.round(w * 0.02),
+  };
+}
+
+function drawStops(
+  plan: TripPlan,
+  ctx: CanvasRenderingContext2D,
+  plot: Plotter,
+  canvas: HTMLCanvasElement,
+) {
+  const m = exportOverlayMetrics(canvas);
   ctx.save();
-    ctx.font = `600 ${Math.round(13.5 * u)}px "DM Sans", sans-serif`;
+  ctx.font = `700 ${m.stopFont}px "DM Sans", sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   for (const stop of plan.mapStops) {
     const { x, y } = plot.point(stop.coord.lng, stop.coord.lat);
     ctx.beginPath();
-    ctx.arc(x, y, 8.5 * u, 0, Math.PI * 2);
+    ctx.arc(x, y, m.stopR, 0, Math.PI * 2);
     ctx.fillStyle = "#1f3a2e";
     ctx.fill();
-    ctx.lineWidth = 2.5 * u;
+    ctx.lineWidth = m.pinStroke;
     ctx.strokeStyle = "#fffdf8";
     ctx.stroke();
     ctx.lineJoin = "round";
     ctx.miterLimit = 2;
-    ctx.lineWidth = 3.5 * u;
+    ctx.lineWidth = Math.max(4, m.pinStroke * 1.4);
     ctx.strokeStyle = "rgba(243,237,224,0.94)";
-    ctx.strokeText(stop.name, x, y + 12 * u);
-    ctx.fillStyle = "rgba(26,35,50,0.88)";
-    ctx.fillText(stop.name, x, y + 12 * u);
+    ctx.strokeText(stop.name, x, y + m.stopR + 6);
+    ctx.fillStyle = "rgba(26,35,50,0.9)";
+    ctx.fillText(stop.name, x, y + m.stopR + 6);
   }
   ctx.restore();
 }
@@ -580,29 +608,29 @@ async function drawLandmarkPhotos(
 ) {
   const picks = pickExportPhotos(plan.landmarks, 4);
   if (!picks.length) return;
-  const u = plot.unit;
-  const cardW = 168 * u;
-  const photoH = 104 * u;
-  const captionH = 26 * u;
-  const cardH = photoH + captionH;
-  const pad = 14 * u;
+  const m = exportOverlayMetrics(canvas);
   const placed: { x: number; y: number; w: number; h: number }[] = [];
+  const ready: { lm: Landmark; img: HTMLImageElement; pin: { x: number; y: number } }[] = [];
 
   for (const lm of picks) {
     if (!lm.photo) continue;
     const img = await tryLoadImage(lm.photo);
     if (!img) continue;
-    const pin = plot.point(lm.coord.lng, lm.coord.lat);
+    ready.push({ lm, img, pin: plot.point(lm.coord.lng, lm.coord.lat) });
+  }
+  ready.sort((a, b) => a.pin.y - b.pin.y || a.pin.x - b.pin.x);
+
+  for (const { lm, img, pin } of ready) {
     const [ox, oy] = lm.offset ?? defaultOffset(lm.id);
-    const rect = placePhotoCard(pin, ox, oy, cardW, cardH, pad, canvas, placed, u);
+    const rect = placePhotoCard(pin, ox, oy, m, canvas, placed);
     placed.push(rect);
     const { x: cardX, y: cardY } = rect;
 
     ctx.beginPath();
-    ctx.arc(pin.x, pin.y, 5.5 * u, 0, Math.PI * 2);
+    ctx.arc(pin.x, pin.y, m.pinR, 0, Math.PI * 2);
     ctx.fillStyle = "#c4a574";
     ctx.fill();
-    ctx.lineWidth = 1.6 * u;
+    ctx.lineWidth = m.pinStroke;
     ctx.strokeStyle = "#fffdf8";
     ctx.stroke();
 
@@ -611,48 +639,53 @@ async function drawLandmarkPhotos(
     ctx.moveTo(pin.x, pin.y);
     ctx.lineTo(edge.x, edge.y);
     ctx.strokeStyle = "rgba(26,35,50,0.55)";
-    ctx.lineWidth = 1.35 * u;
+    ctx.lineWidth = m.leader;
     ctx.stroke();
 
     ctx.save();
     ctx.shadowColor = "rgba(26,35,50,0.22)";
-    ctx.shadowBlur = 16 * u;
-    ctx.shadowOffsetY = 6 * u;
-    roundRectPath(ctx, cardX, cardY, cardW, cardH, 8 * u);
+    ctx.shadowBlur = m.radius * 1.6;
+    ctx.shadowOffsetY = m.radius * 0.6;
+    roundRectPath(ctx, cardX, cardY, m.cardW, m.cardH, m.radius);
     ctx.fillStyle = "#fffdf8";
     ctx.fill();
     ctx.restore();
-    roundRectPath(ctx, cardX, cardY, cardW, cardH, 8 * u);
-    ctx.lineWidth = 2 * u;
+    roundRectPath(ctx, cardX, cardY, m.cardW, m.cardH, m.radius);
+    ctx.lineWidth = Math.max(3, m.pinStroke);
     ctx.strokeStyle = "rgba(255,255,255,0.95)";
     ctx.stroke();
 
     ctx.save();
     ctx.beginPath();
-    ctx.roundRect(cardX, cardY, cardW, photoH, [8 * u, 8 * u, 0, 0]);
+    ctx.roundRect(cardX, cardY, m.cardW, m.photoH, [m.radius, m.radius, 0, 0]);
     ctx.clip();
     const ir = img.naturalWidth / Math.max(1, img.naturalHeight);
-    const cr = cardW / photoH;
-    let dw = cardW;
-    let dh = photoH;
+    const cr = m.cardW / m.photoH;
+    let dw = m.cardW;
+    let dh = m.photoH;
     let dx = cardX;
     let dy = cardY;
     if (ir > cr) {
-      dw = photoH * ir;
-      dx = cardX + (cardW - dw) / 2;
+      dw = m.photoH * ir;
+      dx = cardX + (m.cardW - dw) / 2;
     } else {
-      dh = cardW / ir;
-      dy = cardY + (photoH - dh) / 2;
+      dh = m.cardW / ir;
+      dy = cardY + (m.photoH - dh) / 2;
     }
     ctx.drawImage(img, dx, dy, dw, dh);
     ctx.restore();
 
-    ctx.font = `600 ${Math.round(12.5 * u)}px "DM Sans", sans-serif`;
+    ctx.font = `700 ${m.font}px "DM Sans", sans-serif`;
     ctx.fillStyle = "#1a2332";
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
-    const label = fitLabel(ctx, lm.name, cardW - 16 * u);
-    ctx.fillText(label, cardX + 8 * u, cardY + photoH + captionH / 2);
+    const inset = Math.round(m.cardW * 0.07);
+    const lines = wrapLabel(ctx, lm.name, m.cardW - inset * 2);
+    const blockH = m.lineH * lines.length;
+    const textY = cardY + m.photoH + (m.captionH - blockH) / 2 + m.lineH / 2;
+    lines.forEach((line, i) => {
+      ctx.fillText(line, cardX + inset, textY + i * m.lineH);
+    });
   }
 }
 
@@ -664,50 +697,81 @@ function placePhotoCard(
   pin: { x: number; y: number },
   ox: number,
   oy: number,
-  cardW: number,
-  cardH: number,
-  pad: number,
+  m: ReturnType<typeof exportOverlayMetrics>,
   canvas: HTMLCanvasElement,
   placed: { x: number; y: number; w: number; h: number }[],
-  u: number,
 ) {
-  const inwardX = pin.x > canvas.width / 2 ? -188 : 188;
-  const inwardY = pin.y > canvas.height / 2 ? -88 : 98;
-  const tries: [number, number][] = [
-    [inwardX, inwardY],
-    [ox, oy],
-    [-ox, oy],
-    [ox, -oy],
-    [-ox, -oy],
-    [inwardX, -inwardY],
-    [-160, -48],
-    [160, -48],
-    [-160, 58],
-    [160, 58],
-    [0, -140],
-    [0, 108],
+  const { cardW, cardH, pad } = m;
+  const maxX = canvas.width - cardW - pad;
+  const maxY = canvas.height - cardH - pad;
+  const gap = Math.round(cardW * 0.06);
+  const preferX = Math.sign(ox || (pin.x < canvas.width / 2 ? 1 : -1));
+  const preferY = Math.sign(oy || -1);
+  const offsets: [number, number][] = [
+    [preferX * cardW * 0.82, preferY * cardH * 0.62],
+    [-preferX * cardW * 0.82, preferY * cardH * 0.62],
+    [preferX * cardW * 0.82, -preferY * cardH * 0.62],
+    [-preferX * cardW * 0.82, -preferY * cardH * 0.62],
   ];
-  for (const [dx, dy] of tries) {
-    const x = clamp(pin.x + dx * u - cardW / 2, pad, canvas.width - cardW - pad);
-    const y = clamp(pin.y + dy * u - cardH * 0.35, pad, canvas.height - cardH - pad);
-    const rect = { x, y, w: cardW, h: cardH };
-    if (!overlapsAny(rect, placed)) return rect;
+  for (const k of [0.75, 1.05, 1.35, 1.7]) {
+    for (const deg of [0, 45, 90, 135, 180, 225, 270, 315]) {
+      const a = (deg * Math.PI) / 180;
+      offsets.push([Math.cos(a) * cardW * k, Math.sin(a) * cardH * k]);
+    }
   }
-  return {
-    x: clamp(pin.x - cardW / 2, pad, canvas.width - cardW - pad),
-    y: clamp(pin.y - cardH - 12 * u, pad, canvas.height - cardH - pad),
-    w: cardW,
-    h: cardH,
+  offsets.push(
+    [pad + cardW / 2 - pin.x, pad + cardH / 2 - pin.y],
+    [maxX + cardW / 2 - pin.x, pad + cardH / 2 - pin.y],
+    [pad + cardW / 2 - pin.x, maxY + cardH / 2 - pin.y],
+    [maxX + cardW / 2 - pin.x, maxY + cardH / 2 - pin.y],
+  );
+
+  let best: { x: number; y: number; w: number; h: number } | null = null;
+  let bestScore = Infinity;
+  const consider = (x: number, y: number) => {
+    const rect = { x, y, w: cardW, h: cardH };
+    if (overlapsAny(rect, placed, gap)) return;
+    if (pin.x >= x && pin.x <= x + cardW && pin.y >= y && pin.y <= y + cardH) return;
+    const dist = Math.hypot(x + cardW / 2 - pin.x, y + cardH / 2 - pin.y);
+    if (dist < bestScore) {
+      bestScore = dist;
+      best = rect;
+    }
   };
+
+  for (const [dx, dy] of offsets) {
+    consider(clamp(pin.x + dx - cardW / 2, pad, maxX), clamp(pin.y + dy - cardH / 2, pad, maxY));
+  }
+  if (best) return best;
+
+  const stepX = Math.max(24, Math.round(cardW * 0.28));
+  const stepY = Math.max(24, Math.round(cardH * 0.28));
+  for (let y = pad; y <= maxY; y += stepY) {
+    for (let x = pad; x <= maxX; x += stepX) {
+      consider(x, y);
+    }
+  }
+  return (
+    best ?? {
+      x: clamp(pin.x - cardW / 2, pad, maxX),
+      y: clamp(pin.y - cardH - pad, pad, maxY),
+      w: cardW,
+      h: cardH,
+    }
+  );
 }
 
 function overlapsAny(
   rect: { x: number; y: number; w: number; h: number },
   others: { x: number; y: number; w: number; h: number }[],
+  gap = 0,
 ) {
   return others.some(
     (o) =>
-      rect.x < o.x + o.w && rect.x + rect.w > o.x && rect.y < o.y + o.h && rect.y + rect.h > o.y,
+      rect.x < o.x + o.w + gap &&
+      rect.x + rect.w + gap > o.x &&
+      rect.y < o.y + o.h + gap &&
+      rect.y + rect.h + gap > o.y,
   );
 }
 
@@ -729,6 +793,25 @@ function roundRectPath(
   const radius = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, radius);
+}
+
+function wrapLabel(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  if (ctx.measureText(text).width <= maxWidth) return [text];
+  const words = text.split(/\s+/);
+  const first: string[] = [];
+  let rest = "";
+  for (const word of words) {
+    const next = first.length ? `${first.join(" ")} ${word}` : word;
+    if (ctx.measureText(next).width <= maxWidth) {
+      first.push(word);
+    } else {
+      rest = words.slice(first.length).join(" ");
+      break;
+    }
+  }
+  if (!first.length) return [fitLabel(ctx, text, maxWidth)];
+  if (!rest) return [first.join(" ")];
+  return [first.join(" "), fitLabel(ctx, rest, maxWidth)];
 }
 
 function fitLabel(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
