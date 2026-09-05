@@ -158,23 +158,24 @@ export const ArtisticMap = forwardRef<ArtisticMapHandle, Props>(function Artisti
         );
       }
 
+      const callouts: LiveCallout[] = [];
       plan.landmarks.forEach((lm) => {
         const wrap = document.createElement("div");
         wrap.className = "callout-wrap";
-        const [ox, oy] = lm.offset ?? defaultOffset(lm.id);
-        const length = Math.hypot(ox, oy);
-        const angle = Math.atan2(oy, ox);
+        const preferred = lm.offset ?? defaultOffset(lm.id);
         const days = lm.days ?? [];
         wrap.innerHTML = `
           <div class="landmark-dot" title="${lm.name}"></div>
-          <div class="callout-leader" style="width:${length}px;transform:rotate(${angle}rad)"></div>
-          <button type="button" class="photo-callout" data-days="${days.join(",")}" aria-label="${lm.name}" style="transform:translate(${ox}px, ${oy}px)">
+          <div class="callout-leader"></div>
+          <button type="button" class="photo-callout" data-days="${days.join(",")}" aria-label="${lm.name}">
             <b class="day-chip"></b>
             <img src="${lm.photo}" alt="${lm.name}" />
             <span>${lm.name}</span>
           </button>
         `;
-        wrap.querySelector(".photo-callout")?.addEventListener("click", (e) => {
+        const photo = wrap.querySelector(".photo-callout") as HTMLElement | null;
+        const leader = wrap.querySelector(".callout-leader") as HTMLElement | null;
+        photo?.addEventListener("click", (e) => {
           e.stopPropagation();
           pickDays(days);
         });
@@ -184,13 +185,30 @@ export const ArtisticMap = forwardRef<ArtisticMapHandle, Props>(function Artisti
         });
         wrap.querySelector("img")?.addEventListener("error", () => {
           wrap.classList.add("is-missing-photo");
+          layoutLiveCallouts(callouts, map);
         });
         markers.push(
           new maplibregl.Marker({ element: wrap, anchor: "center" })
             .setLngLat([lm.coord.lng, lm.coord.lat])
             .addTo(map),
         );
+        if (photo && leader) {
+          callouts.push({ wrap, photo, leader, coord: lm.coord, preferred });
+        }
       });
+
+      let layoutRaf = 0;
+      const scheduleCalloutLayout = () => {
+        if (layoutRaf) cancelAnimationFrame(layoutRaf);
+        layoutRaf = requestAnimationFrame(() => {
+          layoutRaf = 0;
+          layoutLiveCallouts(callouts, map);
+        });
+      };
+      map.on("move", scheduleCalloutLayout);
+      map.on("zoom", scheduleCalloutLayout);
+      map.on("resize", scheduleCalloutLayout);
+      scheduleCalloutLayout();
 
       for (const leg of plan.driveLegs) {
         const chip = document.createElement("div");
@@ -563,7 +581,7 @@ function exportOverlayMetrics(canvas: HTMLCanvasElement) {
     radius: Math.round(cardW * 0.05),
     pinR: Math.round(cardW * 0.032),
     pinStroke: Math.round(cardW * 0.012),
-    leader: Math.max(4, Math.round(cardW * 0.014)),
+    leader: Math.max(5, Math.round(cardW * 0.02)),
     stopR: Math.round(w * 0.008),
     stopFont: Math.round(w * 0.02),
   };
@@ -609,7 +627,6 @@ async function drawLandmarkPhotos(
   const picks = pickExportPhotos(plan.landmarks, 4);
   if (!picks.length) return;
   const m = exportOverlayMetrics(canvas);
-  const placed: { x: number; y: number; w: number; h: number }[] = [];
   const ready: { lm: Landmark; img: HTMLImageElement; pin: { x: number; y: number } }[] = [];
 
   for (const lm of picks) {
@@ -620,10 +637,26 @@ async function drawLandmarkPhotos(
   }
   ready.sort((a, b) => a.pin.y - b.pin.y || a.pin.x - b.pin.x);
 
-  for (const { lm, img, pin } of ready) {
-    const [ox, oy] = lm.offset ?? defaultOffset(lm.id);
-    const rect = placePhotoCard(pin, ox, oy, m, canvas, placed);
-    placed.push(rect);
+  const rects = layoutCalloutRects(
+    ready.map((item) => item.pin),
+    ready.map((item) => item.lm.offset ?? defaultOffset(item.lm.id)),
+    {
+      cardW: m.cardW,
+      cardH: m.cardH,
+      anchorX: m.cardW / 2,
+      anchorY: m.cardH / 2,
+      viewW: canvas.width,
+      viewH: canvas.height,
+      pad: m.pad,
+      minLeader: Math.round(m.cardW * 1.08),
+      gap: Math.round(m.cardW * 0.14),
+      spreadToEdges: true,
+    },
+  );
+
+  for (let i = 0; i < ready.length; i++) {
+    const { lm, img, pin } = ready[i];
+    const rect = rects[i];
     const { x: cardX, y: cardY } = rect;
 
     ctx.beginPath();
@@ -693,86 +726,395 @@ function pickExportPhotos(landmarks: Landmark[], max: number): Landmark[] {
   return landmarks.filter((lm) => lm.photo).slice(0, max);
 }
 
-function placePhotoCard(
-  pin: { x: number; y: number },
-  ox: number,
-  oy: number,
-  m: ReturnType<typeof exportOverlayMetrics>,
-  canvas: HTMLCanvasElement,
-  placed: { x: number; y: number; w: number; h: number }[],
-) {
-  const { cardW, cardH, pad } = m;
-  const maxX = canvas.width - cardW - pad;
-  const maxY = canvas.height - cardH - pad;
-  const gap = Math.round(cardW * 0.06);
-  const preferX = Math.sign(ox || (pin.x < canvas.width / 2 ? 1 : -1));
-  const preferY = Math.sign(oy || -1);
-  const offsets: [number, number][] = [
-    [preferX * cardW * 0.82, preferY * cardH * 0.62],
-    [-preferX * cardW * 0.82, preferY * cardH * 0.62],
-    [preferX * cardW * 0.82, -preferY * cardH * 0.62],
-    [-preferX * cardW * 0.82, -preferY * cardH * 0.62],
-  ];
-  for (const k of [0.75, 1.05, 1.35, 1.7]) {
-    for (const deg of [0, 45, 90, 135, 180, 225, 270, 315]) {
-      const a = (deg * Math.PI) / 180;
-      offsets.push([Math.cos(a) * cardW * k, Math.sin(a) * cardH * k]);
-    }
-  }
-  offsets.push(
-    [pad + cardW / 2 - pin.x, pad + cardH / 2 - pin.y],
-    [maxX + cardW / 2 - pin.x, pad + cardH / 2 - pin.y],
-    [pad + cardW / 2 - pin.x, maxY + cardH / 2 - pin.y],
-    [maxX + cardW / 2 - pin.x, maxY + cardH / 2 - pin.y],
+type LiveCallout = {
+  wrap: HTMLElement;
+  photo: HTMLElement;
+  leader: HTMLElement;
+  coord: { lng: number; lat: number };
+  preferred: [number, number];
+};
+
+type CalloutLayoutOpt = {
+  cardW: number;
+  cardH: number;
+  anchorX: number;
+  anchorY: number;
+  viewW: number;
+  viewH: number;
+  pad: number;
+  minLeader: number;
+  gap: number;
+  skip?: boolean[];
+  spreadToEdges?: boolean;
+};
+
+const LIVE_CARD_W = 148;
+const LIVE_CARD_H = 124;
+const LIVE_ANCHOR_X = 74;
+const LIVE_ANCHOR_Y = 54;
+
+const FAN_DIRS: [number, number][] = [
+  [1, -0.9],
+  [-1, -0.9],
+  [1, 0.95],
+  [-1, 0.95],
+  [1.2, 0.1],
+  [-1.2, 0.1],
+  [0.2, -1.25],
+  [0.2, 1.2],
+  [0.75, -1.15],
+  [-0.75, -1.15],
+  [0.75, 1.1],
+  [-0.75, 1.1],
+];
+
+function layoutLiveCallouts(callouts: LiveCallout[], map: maplibregl.Map) {
+  if (!callouts.length) return;
+  const node = map.getContainer();
+  const pins = callouts.map((item) => map.project([item.coord.lng, item.coord.lat]));
+  const skip = callouts.map((item) => item.wrap.classList.contains("is-missing-photo"));
+  const offsets = layoutCalloutOffsets(
+    pins,
+    callouts.map((item) => item.preferred),
+    {
+      cardW: LIVE_CARD_W,
+      cardH: LIVE_CARD_H,
+      anchorX: LIVE_ANCHOR_X,
+      anchorY: LIVE_ANCHOR_Y,
+      viewW: node.clientWidth,
+      viewH: node.clientHeight,
+      pad: 14,
+      minLeader: 200,
+      gap: 18,
+      skip,
+    },
   );
+  callouts.forEach((item, i) => {
+    const [ox, oy] = offsets[i];
+    const length = Math.hypot(ox, oy);
+    item.leader.style.width = `${length}px`;
+    item.leader.style.transform = `rotate(${Math.atan2(oy, ox)}rad)`;
+    item.photo.style.transform = `translate(${ox}px, ${oy}px)`;
+  });
+}
 
-  let best: { x: number; y: number; w: number; h: number } | null = null;
-  let bestScore = Infinity;
-  const consider = (x: number, y: number) => {
-    const rect = { x, y, w: cardW, h: cardH };
-    if (overlapsAny(rect, placed, gap)) return;
-    if (pin.x >= x && pin.x <= x + cardW && pin.y >= y && pin.y <= y + cardH) return;
-    const dist = Math.hypot(x + cardW / 2 - pin.x, y + cardH / 2 - pin.y);
-    if (dist < bestScore) {
-      bestScore = dist;
-      best = rect;
+function layoutCalloutRects(
+  pins: { x: number; y: number }[],
+  preferred: [number, number][],
+  opt: CalloutLayoutOpt,
+) {
+  const offsets = layoutCalloutOffsets(pins, preferred, opt);
+  return offsets.map((off, i) => ({
+    x: pins[i].x + off[0] - opt.anchorX,
+    y: pins[i].y + off[1] - opt.anchorY,
+    w: opt.cardW,
+    h: opt.cardH,
+  }));
+}
+
+function layoutCalloutsToEdges(
+  pins: { x: number; y: number }[],
+  opt: CalloutLayoutOpt,
+  skip: boolean[],
+): [number, number][] {
+  const { cardW, cardH, viewW, viewH, pad, minLeader, gap } = opt;
+  const cx = pad + cardW / 2;
+  const cy = pad + cardH / 2;
+  const rx = viewW - pad - cardW / 2;
+  const by = viewH - pad - cardH / 2;
+  const midY = viewH / 2;
+  const midX = viewW / 2;
+  const slots = [
+    { x: cx, y: cy },
+    { x: rx, y: cy },
+    { x: cx, y: by },
+    { x: rx, y: by },
+    { x: cx, y: midY },
+    { x: rx, y: midY },
+    { x: midX, y: cy },
+    { x: midX, y: by },
+  ];
+  const used = new Set<number>();
+  const offsets: [number, number][] = pins.map((pin, i) => {
+    if (skip[i]) return [0, 0];
+    let best = 0;
+    let bestScore = -Infinity;
+    slots.forEach((slot, idx) => {
+      if (used.has(idx)) return;
+      const ox = slot.x - pin.x;
+      const oy = slot.y - pin.y;
+      const dist = Math.hypot(ox, oy);
+      if (dist < minLeader * 0.55) return;
+      const rect = { x: slot.x - cardW / 2, y: slot.y - cardH / 2, w: cardW, h: cardH };
+      if (pointInRect(pin.x, pin.y, rect, 12)) return;
+      const edge = Math.min(slot.x, viewW - slot.x, slot.y, viewH - slot.y);
+      const score = dist * 0.35 + edge * 0.2 - (used.size === 0 ? 0 : 0);
+      if (score > bestScore) {
+        bestScore = score;
+        best = idx;
+      }
+    });
+    if (bestScore === -Infinity) {
+      const dir = unit(pin.x < viewW / 2 ? 1 : -1, pin.y < viewH / 2 ? 1 : -1);
+      const room = maxTravel(pin, dir[0], dir[1], opt);
+      const lead = Math.min(room * 0.75, Math.max(minLeader, room * 0.5));
+      return [dir[0] * lead, dir[1] * lead];
     }
-  };
+    used.add(best);
+    const slot = slots[best];
+    return [slot.x - pin.x, slot.y - pin.y];
+  });
 
-  for (const [dx, dy] of offsets) {
-    consider(clamp(pin.x + dx - cardW / 2, pad, maxX), clamp(pin.y + dy - cardH / 2, pad, maxY));
-  }
-  if (best) return best;
-
-  const stepX = Math.max(24, Math.round(cardW * 0.28));
-  const stepY = Math.max(24, Math.round(cardH * 0.28));
-  for (let y = pad; y <= maxY; y += stepY) {
-    for (let x = pad; x <= maxX; x += stepX) {
-      consider(x, y);
-    }
-  }
-  return (
-    best ?? {
-      x: clamp(pin.x - cardW / 2, pad, maxX),
-      y: clamp(pin.y - cardH - pad, pad, maxY),
+  for (let i = 0; i < offsets.length; i++) {
+    if (skip[i]) continue;
+    const rectI = {
+      x: pins[i].x + offsets[i][0] - cardW / 2,
+      y: pins[i].y + offsets[i][1] - cardH / 2,
       w: cardW,
       h: cardH,
+    };
+    const hit = offsets.some((off, j) => {
+      if (j === i || skip[j]) return false;
+      const rectJ = {
+        x: pins[j].x + off[0] - cardW / 2,
+        y: pins[j].y + off[1] - cardH / 2,
+        w: cardW,
+        h: cardH,
+      };
+      return rectsOverlap(rectI, rectJ, gap);
+    });
+    if (!hit) continue;
+    const dir = unit(offsets[i][0], offsets[i][1], [1, -1]);
+    const room = maxTravel(pins[i], dir[0], dir[1], opt);
+    const lead = Math.min(room * 0.8, Math.max(minLeader, Math.hypot(offsets[i][0], offsets[i][1]) + cardW * 0.2));
+    offsets[i] = [dir[0] * lead, dir[1] * lead];
+  }
+  return offsets;
+}
+
+function layoutCalloutOffsets(
+  pins: { x: number; y: number }[],
+  preferred: [number, number][],
+  opt: CalloutLayoutOpt,
+): [number, number][] {
+  const { cardW, cardH, anchorX, anchorY, viewW, viewH, pad, minLeader, gap } = opt;
+  const skip = opt.skip ?? pins.map(() => false);
+  const n = pins.length;
+  const offsets: [number, number][] = preferred.map((p) => [p[0], p[1]]);
+  if (!n) return offsets;
+
+  if (opt.spreadToEdges) {
+    return layoutCalloutsToEdges(pins, opt, skip);
+  }
+
+  const active = pins.map((_, i) => !skip[i]);
+  const cx =
+    pins.reduce((sum, pin, i) => sum + (active[i] ? pin.x : 0), 0) /
+    Math.max(1, active.filter(Boolean).length);
+  const cy =
+    pins.reduce((sum, pin, i) => sum + (active[i] ? pin.y : 0), 0) /
+    Math.max(1, active.filter(Boolean).length);
+
+  const clusterR = Math.max(cardW, cardH) * 1.45;
+  const groups: number[][] = [];
+  const grouped = new Set<number>();
+  for (let i = 0; i < n; i++) {
+    if (!active[i] || grouped.has(i)) continue;
+    const group = [i];
+    grouped.add(i);
+    for (let added = true; added; ) {
+      added = false;
+      for (let j = 0; j < n; j++) {
+        if (!active[j] || grouped.has(j)) continue;
+        if (
+          group.some(
+            (g) => Math.hypot(pins[g].x - pins[j].x, pins[g].y - pins[j].y) < clusterR,
+          )
+        ) {
+          group.push(j);
+          grouped.add(j);
+          added = true;
+        }
+      }
     }
+    groups.push(group);
+  }
+
+  const boxAt = (i: number, ox: number, oy: number) => ({
+    x: pins[i].x + ox - anchorX,
+    y: pins[i].y + oy - anchorY,
+    w: cardW,
+    h: cardH,
+  });
+
+  const usedFans = new Set<number>();
+  for (const group of groups) {
+    group.forEach((i, k) => {
+      const want = minLeader * (1 + 0.1 * Math.max(0, group.length - 1));
+      let bestIdx = -1;
+      let bestDir: [number, number] = FAN_DIRS[k % FAN_DIRS.length];
+      let bestRoom = 0;
+      for (let extra = 0; extra < FAN_DIRS.length; extra++) {
+        const idx = (k + extra) % FAN_DIRS.length;
+        if (usedFans.has(idx) && extra < FAN_DIRS.length - 1) continue;
+        const fan = FAN_DIRS[idx];
+        const dir = unit(fan[0], fan[1]);
+        const room = maxTravel(pins[i], dir[0], dir[1], opt);
+        if (room < minLeader * 0.72) continue;
+        bestIdx = idx;
+        bestDir = dir;
+        bestRoom = room;
+        break;
+      }
+      if (bestIdx < 0) {
+        const away = unit(pins[i].x - cx, pins[i].y - cy, [1, -1]);
+        bestDir = away;
+        bestRoom = Math.max(minLeader, maxTravel(pins[i], away[0], away[1], opt));
+      } else {
+        usedFans.add(bestIdx);
+      }
+      const lead = Math.min(bestRoom * 0.8, Math.max(minLeader * 0.9, Math.min(want, bestRoom * 0.9)));
+      offsets[i] = [bestDir[0] * lead, bestDir[1] * lead];
+    });
+  }
+
+  const clampOffset = (i: number, ox: number, oy: number): [number, number] => {
+    let x = ox;
+    let y = oy;
+    const box = boxAt(i, x, y);
+    if (box.x < pad) x += pad - box.x;
+    if (box.y < pad) y += pad - box.y;
+    const after = boxAt(i, x, y);
+    if (after.x + cardW > viewW - pad) x -= after.x + cardW - (viewW - pad);
+    if (after.y + cardH > viewH - pad) y -= after.y + cardH - (viewH - pad);
+    return [x, y];
+  };
+
+  for (let iter = 0; iter < 28; iter++) {
+    for (let i = 0; i < n; i++) {
+      if (!active[i]) continue;
+      for (let j = i + 1; j < n; j++) {
+        if (!active[j]) continue;
+        const a = boxAt(i, offsets[i][0], offsets[i][1]);
+        const b = boxAt(j, offsets[j][0], offsets[j][1]);
+        if (!rectsOverlap(a, b, gap)) continue;
+        const acx = pins[i].x + offsets[i][0];
+        const acy = pins[i].y + offsets[i][1];
+        const bcx = pins[j].x + offsets[j][0];
+        const bcy = pins[j].y + offsets[j][1];
+        let dx = acx - bcx;
+        let dy = acy - bcy;
+        if (Math.hypot(dx, dy) < 0.8) {
+          const fan = FAN_DIRS[i % FAN_DIRS.length];
+          dx = fan[0];
+          dy = fan[1];
+        }
+        const dir = unit(dx, dy, [1, -1]);
+        const push = 20;
+        offsets[i] = [acx + dir[0] * push - pins[i].x, acy + dir[1] * push - pins[i].y];
+        offsets[j] = [bcx - dir[0] * push - pins[j].x, bcy - dir[1] * push - pins[j].y];
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      if (!active[i]) continue;
+      for (let j = 0; j < n; j++) {
+        if (i === j) continue;
+        const box = boxAt(i, offsets[i][0], offsets[i][1]);
+        if (!pointInRect(pins[j].x, pins[j].y, box, 10)) continue;
+        const dir = unit(
+          pins[i].x + offsets[i][0] - pins[j].x,
+          pins[i].y + offsets[i][1] - pins[j].y,
+          [1, -1],
+        );
+        offsets[i] = [
+          offsets[i][0] + dir[0] * 16,
+          offsets[i][1] + dir[1] * 16,
+        ];
+      }
+      offsets[i] = clampOffset(i, offsets[i][0], offsets[i][1]);
+    }
+  }
+
+  for (let i = 0; i < n; i++) {
+    if (!active[i]) continue;
+    const boxed = boxAt(i, offsets[i][0], offsets[i][1]);
+    const hits = [...Array(n).keys()].filter(
+      (j) => j !== i && active[j] && rectsOverlap(boxed, boxAt(j, offsets[j][0], offsets[j][1]), gap),
+    );
+    if (!hits.length) continue;
+    let best: [number, number] | null = null;
+    let bestScore = -Infinity;
+    for (const fan of FAN_DIRS) {
+      const dir = unit(fan[0], fan[1]);
+      const room = maxTravel(pins[i], dir[0], dir[1], opt);
+      if (room < minLeader * 0.5) continue;
+      const lead = Math.min(room * 0.8, Math.max(minLeader, room * 0.55));
+      const next: [number, number] = [dir[0] * lead, dir[1] * lead];
+      const rect = boxAt(i, next[0], next[1]);
+      if (
+        [...Array(n).keys()].some(
+          (j) => j !== i && active[j] && rectsOverlap(rect, boxAt(j, offsets[j][0], offsets[j][1]), gap),
+        )
+      ) {
+        continue;
+      }
+      if (room > bestScore) {
+        bestScore = room;
+        best = next;
+      }
+    }
+    if (best) offsets[i] = best;
+  }
+
+  return offsets;
+}
+
+function rectsOverlap(
+  a: { x: number; y: number; w: number; h: number },
+  b: { x: number; y: number; w: number; h: number },
+  gap = 0,
+) {
+  return (
+    a.x < b.x + b.w + gap &&
+    a.x + a.w + gap > b.x &&
+    a.y < b.y + b.h + gap &&
+    a.y + a.h + gap > b.y
   );
 }
 
-function overlapsAny(
+function pointInRect(
+  x: number,
+  y: number,
   rect: { x: number; y: number; w: number; h: number },
-  others: { x: number; y: number; w: number; h: number }[],
-  gap = 0,
+  pad = 0,
 ) {
-  return others.some(
-    (o) =>
-      rect.x < o.x + o.w + gap &&
-      rect.x + rect.w + gap > o.x &&
-      rect.y < o.y + o.h + gap &&
-      rect.y + rect.h + gap > o.y,
-  );
+  return x >= rect.x - pad && x <= rect.x + rect.w + pad && y >= rect.y - pad && y <= rect.y + rect.h + pad;
+}
+
+function unit(x: number, y: number, fallback: [number, number] = [1, -1]): [number, number] {
+  const len = Math.hypot(x, y);
+  if (len < 0.001) return fallback;
+  return [x / len, y / len];
+}
+
+function maxTravel(
+  pin: { x: number; y: number },
+  dx: number,
+  dy: number,
+  opt: CalloutLayoutOpt,
+) {
+  const { cardW, cardH, anchorX, anchorY, viewW, viewH, pad } = opt;
+  let t = Number.POSITIVE_INFINITY;
+  const minLeft = pad;
+  const maxRight = viewW - pad - cardW;
+  const minTop = pad;
+  const maxBottom = viewH - pad - cardH;
+  if (dx > 1e-6) t = Math.min(t, (maxRight + anchorX - pin.x) / dx);
+  else if (dx < -1e-6) t = Math.min(t, (minLeft + anchorX - pin.x) / dx);
+  if (dy > 1e-6) t = Math.min(t, (maxBottom + anchorY - pin.y) / dy);
+  else if (dy < -1e-6) t = Math.min(t, (minTop + anchorY - pin.y) / dy);
+  if (!Number.isFinite(t) || t < 0) return 0;
+  return t;
 }
 
 function nearestRectPoint(x: number, y: number, rect: { x: number; y: number; w: number; h: number }) {
@@ -1052,7 +1394,7 @@ function nextDay(days: number[], current: number | null): number {
 function defaultOffset(id: string): [number, number] {
   const hash = [...id].reduce((n, ch) => n + ch.charCodeAt(0), 0);
   const side = hash % 2 === 0 ? 1 : -1;
-  return [side * 118, hash % 3 === 0 ? -32 : 36];
+  return [side * 200, hash % 3 === 0 ? -80 : 86];
 }
 
 function Compass() {

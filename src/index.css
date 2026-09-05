@@ -61,6 +61,7 @@ body {
   margin-top: -54px;
   padding: 0;
   text-align: left;
+  z-index: 1;
 }
 
 .photo-callout.is-dim {
@@ -148,8 +149,9 @@ body {
   left: 0;
   top: 0;
   height: 1.5px;
-  background: rgba(31, 58, 46, 0.45);
+  background: rgba(26, 35, 50, 0.55);
   transform-origin: 0 50%;
+  z-index: 0;
 }
 
 .stop-pin {
