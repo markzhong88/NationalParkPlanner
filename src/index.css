@@ -253,6 +253,91 @@ body {
     0 0 0 4px #c4a574;
 }
 
+.callout-wrap.is-dot-only .photo-callout,
+.callout-wrap.is-dot-only .callout-leader {
+  display: none;
+}
+
+.driving-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .driving-legs {
+    display: block !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .photo-callout {
+    width: 78px;
+    margin-left: -39px;
+    margin-top: -30px;
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(26, 35, 50, 0.16);
+  }
+
+  .photo-callout img {
+    height: 46px;
+  }
+
+  .photo-callout span {
+    padding: 4px 5px 5px;
+    font-size: 8.5px;
+    line-height: 1.15;
+  }
+
+  .photo-callout.is-active {
+    box-shadow:
+      0 0 0 1px #fff,
+      0 0 0 3px #c4a574,
+      0 8px 18px rgba(26, 35, 50, 0.2);
+  }
+
+  .day-chip {
+    top: 4px;
+    left: 4px;
+    font-size: 7px;
+    padding: 2px 5px;
+  }
+
+  .stop-label {
+    display: none;
+  }
+
+  .drive-chip {
+    display: none;
+  }
+
+  .drive-chip.is-active {
+    display: block;
+    font-size: 9px;
+    padding: 2px 6px;
+    box-shadow: 0 2px 8px rgba(26, 35, 50, 0.12);
+  }
+
+  .driving-head {
+    position: relative;
+    padding-right: 1.4rem;
+  }
+
+  .driving-head::after {
+    content: "";
+    position: absolute;
+    right: 0.65rem;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    border-right: 1.5px solid rgba(26, 35, 50, 0.45);
+    border-bottom: 1.5px solid rgba(26, 35, 50, 0.45);
+    transform: translateY(-70%) rotate(45deg);
+  }
+
+  .driving-card[open] > .driving-head::after {
+    transform: translateY(-30%) rotate(225deg);
+  }
+}
+
 .poster-scroll {
   scrollbar-width: thin;
   scrollbar-color: rgba(31, 58, 46, 0.28) transparent;

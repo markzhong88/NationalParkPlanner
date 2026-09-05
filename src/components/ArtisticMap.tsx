@@ -58,7 +58,7 @@ export const ArtisticMap = forwardRef<ArtisticMapHandle, Props>(function Artisti
         [plan.bounds.maxLng, plan.bounds.maxLat],
       ],
       fitBoundsOptions: {
-        padding: { top: 88, left: 240, right: 88, bottom: 72 },
+        padding: liveMapPadding(isCompactMapView(node) || isCompactMapWindow()),
         maxZoom: wideTrip(plan) ? 6.6 : 8.6,
       },
       attributionControl: { compact: true },
@@ -78,8 +78,30 @@ export const ArtisticMap = forwardRef<ArtisticMapHandle, Props>(function Artisti
       selectRef.current(nextDay(days, selectedRef.current));
     };
 
+    const frameOverview = () => {
+      map.fitBounds(
+        [
+          [plan.bounds.minLng, plan.bounds.minLat],
+          [plan.bounds.maxLng, plan.bounds.maxLat],
+        ],
+        {
+          padding: liveMapPadding(isCompactMapView(node)),
+          maxZoom: wideTrip(plan) ? 6.6 : 8.6,
+          duration: 0,
+        },
+      );
+    };
+    const compactMq = window.matchMedia("(max-width: 1023px)");
+    const onCompactChange = () => {
+      if (!map.loaded()) return;
+      if (selectedRef.current == null) frameOverview();
+      else applyMapSelection(node, map, planRef.current, selectedRef.current, true);
+    };
+    compactMq.addEventListener("change", onCompactChange);
+
     map.on("load", () => {
       resize();
+      frameOverview();
       map.addSource("route", {
         type: "geojson",
         data: lineFeature(plan.routeGeometry),
@@ -223,6 +245,7 @@ export const ArtisticMap = forwardRef<ArtisticMapHandle, Props>(function Artisti
     });
 
     return () => {
+      compactMq.removeEventListener("change", onCompactChange);
       observer.disconnect();
       markers.forEach((m) => m.remove());
       map.remove();
@@ -244,7 +267,7 @@ export const ArtisticMap = forwardRef<ArtisticMapHandle, Props>(function Artisti
     >
       <div ref={containerRef} className="map-canvas h-full min-h-[560px] w-full" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_58%,rgba(243,237,224,0.34))]" />
-      <div className="pointer-events-none absolute top-4 left-4 max-w-sm">
+      <div className="pointer-events-none absolute top-4 left-4 max-w-sm max-lg:pointer-events-auto max-lg:top-2 max-lg:left-1/2 max-lg:z-10 max-lg:max-w-[12.5rem] max-lg:-translate-x-1/2">
         <DrivingSummary
           legs={plan.driveLegs}
           totalMiles={plan.totalMiles}
@@ -252,15 +275,15 @@ export const ArtisticMap = forwardRef<ArtisticMapHandle, Props>(function Artisti
           selectedDay={selectedDay}
         />
       </div>
-      <div className="pointer-events-none absolute right-4 bottom-8 rounded-lg bg-paper/90 px-3 py-2 text-[10.5px] text-ink/70 ring-1 ring-ink/8">
+      <div className="pointer-events-none absolute right-4 bottom-8 rounded-lg bg-paper/90 px-3 py-2 text-[10.5px] text-ink/70 ring-1 ring-ink/8 max-lg:right-2 max-lg:bottom-2 max-lg:rounded-md max-lg:px-2 max-lg:py-1 max-lg:text-[9px]">
         <p className="flex items-center gap-2">
           <span className="inline-block h-1.5 w-5 rounded-full bg-[#3d5c7a]" /> Route
         </p>
-        <p className="mt-1 flex items-center gap-2">
+        <p className="mt-1 flex items-center gap-2 max-lg:mt-0.5">
           <span className="stop-pin-mini" /> Overnight
         </p>
       </div>
-      <div className="pointer-events-none absolute right-4 bottom-28 text-ink/40">
+      <div className="pointer-events-none absolute right-4 bottom-28 text-ink/40 max-lg:hidden">
         <Compass />
       </div>
     </div>
@@ -746,12 +769,57 @@ type CalloutLayoutOpt = {
   gap: number;
   skip?: boolean[];
   spreadToEdges?: boolean;
+  preferNear?: boolean;
 };
 
 const LIVE_CARD_W = 148;
 const LIVE_CARD_H = 124;
 const LIVE_ANCHOR_X = 74;
 const LIVE_ANCHOR_Y = 54;
+const COMPACT_MAP_MAX_PX = 1023;
+const COMPACT_PHOTO_LIMIT = 3;
+
+function isCompactMapWindow() {
+  return typeof window !== "undefined" && window.matchMedia(`(max-width: ${COMPACT_MAP_MAX_PX}px)`).matches;
+}
+
+function isCompactMapView(node: HTMLElement) {
+  return node.clientWidth > 0 && node.clientWidth <= COMPACT_MAP_MAX_PX;
+}
+
+function liveMapPadding(compact: boolean) {
+  return compact
+    ? { top: 56, left: 12, right: 12, bottom: 44 }
+    : { top: 88, left: 240, right: 88, bottom: 72 };
+}
+
+function selectionMapPadding(compact: boolean) {
+  return compact
+    ? { top: 56, left: 20, right: 20, bottom: 48 }
+    : { top: 120, left: 88, right: 88, bottom: 96 };
+}
+
+function liveCalloutMetrics(compact: boolean) {
+  if (compact) {
+    return { cardW: 78, cardH: 70, anchorX: 39, anchorY: 30, minLeader: 64, gap: 10, pad: 36 };
+  }
+  return {
+    cardW: LIVE_CARD_W,
+    cardH: LIVE_CARD_H,
+    anchorX: LIVE_ANCHOR_X,
+    anchorY: LIVE_ANCHOR_Y,
+    minLeader: 200,
+    gap: 18,
+    pad: 14,
+  };
+}
+
+function pickSpreadIds(ids: number[], max: number): Set<number> {
+  if (ids.length <= max) return new Set(ids);
+  if (max <= 1) return new Set(ids.slice(0, 1));
+  if (max === 2) return new Set([ids[0], ids[ids.length - 1]]);
+  return new Set([ids[0], ids[Math.floor((ids.length - 1) / 2)], ids[ids.length - 1]]);
+}
 
 const FAN_DIRS: [number, number][] = [
   [1, -0.9],
@@ -771,22 +839,39 @@ const FAN_DIRS: [number, number][] = [
 function layoutLiveCallouts(callouts: LiveCallout[], map: maplibregl.Map) {
   if (!callouts.length) return;
   const node = map.getContainer();
+  const compact = isCompactMapView(node);
+  const metrics = liveCalloutMetrics(compact);
+  const photoIds = callouts
+    .map((item, i) => (item.wrap.classList.contains("is-missing-photo") ? -1 : i))
+    .filter((i) => i >= 0);
+  const keep = compact ? pickSpreadIds(photoIds, COMPACT_PHOTO_LIMIT) : new Set(photoIds);
+  callouts.forEach((item, i) => {
+    item.wrap.classList.toggle(
+      "is-dot-only",
+      compact && !item.wrap.classList.contains("is-missing-photo") && !keep.has(i),
+    );
+  });
   const pins = callouts.map((item) => map.project([item.coord.lng, item.coord.lat]));
-  const skip = callouts.map((item) => item.wrap.classList.contains("is-missing-photo"));
+  const skip = callouts.map(
+    (item) =>
+      item.wrap.classList.contains("is-missing-photo") || item.wrap.classList.contains("is-dot-only"),
+  );
   const offsets = layoutCalloutOffsets(
     pins,
     callouts.map((item) => item.preferred),
     {
-      cardW: LIVE_CARD_W,
-      cardH: LIVE_CARD_H,
-      anchorX: LIVE_ANCHOR_X,
-      anchorY: LIVE_ANCHOR_Y,
+      cardW: metrics.cardW,
+      cardH: metrics.cardH,
+      anchorX: metrics.anchorX,
+      anchorY: metrics.anchorY,
       viewW: node.clientWidth,
       viewH: node.clientHeight,
-      pad: 14,
-      minLeader: 200,
-      gap: 18,
+      pad: metrics.pad,
+      minLeader: metrics.minLeader,
+      gap: metrics.gap,
       skip,
+      spreadToEdges: compact,
+      preferNear: compact,
     },
   );
   callouts.forEach((item, i) => {
@@ -831,7 +916,7 @@ function layoutCalloutsToEdges(
     { x: rx, y: by },
     { x: cx, y: midY },
     { x: rx, y: midY },
-    { x: midX, y: cy },
+    ...(opt.preferNear ? [] : [{ x: midX, y: cy }]),
     { x: midX, y: by },
   ];
   const used = new Set<number>();
@@ -844,11 +929,11 @@ function layoutCalloutsToEdges(
       const ox = slot.x - pin.x;
       const oy = slot.y - pin.y;
       const dist = Math.hypot(ox, oy);
-      if (dist < minLeader * 0.55) return;
+      if (!opt.preferNear && dist < minLeader * 0.55) return;
       const rect = { x: slot.x - cardW / 2, y: slot.y - cardH / 2, w: cardW, h: cardH };
       if (pointInRect(pin.x, pin.y, rect, 12)) return;
       const edge = Math.min(slot.x, viewW - slot.x, slot.y, viewH - slot.y);
-      const score = dist * 0.35 + edge * 0.2 - (used.size === 0 ? 0 : 0);
+      const score = opt.preferNear ? -dist + edge * 0.05 : dist * 0.35 + edge * 0.2 - (used.size === 0 ? 0 : 0);
       if (score > bestScore) {
         bestScore = score;
         best = idx;
@@ -1300,7 +1385,7 @@ function applyMapSelection(
   const bounds = new maplibregl.LngLatBounds(points[0], points[0]);
   for (const point of points) bounds.extend(point);
   map.fitBounds(bounds, {
-    padding: { top: 120, left: 88, right: 88, bottom: 96 },
+    padding: selectionMapPadding(isCompactMapView(root)),
     maxZoom: longDrive ? 6.6 : slice.length > 4 ? 8.4 : 9.1,
     duration: 700,
   });
