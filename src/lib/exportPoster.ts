@@ -160,7 +160,7 @@ function drawContain(
   }
   ctx.save();
   ctx.beginPath();
-  ctx.roundRect(x, y, w, h, Math.min(w, h, 12 * (w / 400)));
+  ctx.rect(x, y, w, h);
   ctx.clip();
   ctx.fillStyle = "#e7dcc8";
   ctx.fillRect(x, y, w, h);

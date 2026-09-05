@@ -4,9 +4,6 @@ import { formatDayHeading } from "../lib/format";
 import { exportMapAspect } from "../lib/geo";
 import { POSTER_H, POSTER_W } from "../lib/exportPoster";
 
-const BADGE_W = 78;
-const BADGE_H = 26;
-
 export function PrintPoster({
   plan,
   mapImage,
@@ -16,135 +13,156 @@ export function PrintPoster({
   mapImage: string | null;
   sheetRef: RefObject<HTMLDivElement | null>;
 }) {
-  const compact = plan.days.length > 6;
-  const columns = plan.days.length > 8 ? 3 : 2;
-  const rows = Math.ceil(plan.days.length / columns);
+  const dayCount = plan.days.length;
+  const columns = dayCount <= 5 ? dayCount : dayCount > 8 ? 3 : 2;
+  const rows = Math.ceil(dayCount / columns);
+  const compact = dayCount > 6;
+  const strip = dayCount <= 5;
   const mapAspect = exportMapAspect(plan.bounds);
-  const mapHeight = posterMapHeight(mapAspect, rows, compact);
+  const mapHeight = posterMapHeight(mapAspect, dayCount, columns);
+  const destinations = destinationLine(plan);
+  const quote = firstSentence(plan.styleNote);
+  const how = plan.flying ? `Flying via ${plan.gateway}` : `From ${plan.homeLabel}`;
 
   return (
     <div ref={sheetRef} className="print-poster paper-grid" aria-hidden="true">
+      <div className="print-rule print-rule-top" />
+
+      <div className="print-mast">
+        <p className="print-brand-name">RIMFOLD</p>
+        <p className="print-brand-url">rimfold.com</p>
+      </div>
+
       <header className="print-head">
-        <div className="print-head-copy">
-          <h1 className="print-title">{prettyTitle(plan.title)}</h1>
-          <p className="print-meta">
-            {plan.dateRange}
-            <span className="print-dot">·</span>
-            {plan.travelers}
-          </p>
-        </div>
-        <div className="print-brand">
-          <p className="print-brand-name" style={{ color: "#1f3a2e" }}>
-            RIMFOLD
-          </p>
-          <p className="print-brand-url">rimfold.com</p>
-        </div>
+        <h1 className="print-title">{prettyTitle(plan.title)}</h1>
+        {destinations ? <p className="print-dest">{destinations}</p> : null}
+        <p className="print-meta">
+          <span>{plan.dateRange}</span>
+          <span className="print-dot">·</span>
+          <span>{plan.travelers}</span>
+          <span className="print-dot">·</span>
+          <span>{plan.totalMiles} miles</span>
+          <span className="print-dot">·</span>
+          <span>{how}</span>
+        </p>
+        {quote ? <p className="print-quote">{quote}</p> : null}
       </header>
 
-      <div
-        data-print-map-slot
-        className="print-map"
-        style={{ height: mapHeight, aspectRatio: "auto" }}
-      >
-        {mapImage ? (
-          <img data-print-map="true" src={mapImage} alt="" />
-        ) : (
-          <div className="print-map-fallback">Map</div>
-        )}
+      <div className="print-map-mat">
+        <div
+          data-print-map-slot
+          className="print-map"
+          style={{ height: mapHeight, aspectRatio: "auto" }}
+        >
+          {mapImage ? (
+            <img data-print-map="true" src={mapImage} alt="" />
+          ) : (
+            <div className="print-map-fallback">Map</div>
+          )}
+        </div>
       </div>
 
-      <div className="print-days" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+      <p className="print-days-label">The days</p>
+      <div
+        className={`print-days${strip ? " is-strip" : ""}`}
+        style={{
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${rows}, minmax(0, auto))`,
+          gridAutoFlow: "column",
+        }}
+      >
         {plan.days.map((day) => (
-          <PrintDayCard key={day.day} day={day} compact={compact} />
+          <PrintDayCard key={day.day} day={day} compact={compact} strip={strip} />
         ))}
       </div>
+
+      <footer className="print-foot">
+        <p>
+          {plan.hotelNights} nights
+          <span className="print-dot">·</span>
+          {plan.parkName}
+          <span className="print-dot">·</span>
+          A printed plan, not a booking
+        </p>
+        <p className="print-foot-brand">RIMFOLD · rimfold.com</p>
+      </footer>
     </div>
   );
 }
 
-function PrintDayCard({ day, compact }: { day: DayPlan; compact: boolean }) {
-  const activities = compact ? day.activities.slice(0, 4) : day.activities;
+function PrintDayCard({
+  day,
+  compact,
+  strip,
+}: {
+  day: DayPlan;
+  compact: boolean;
+  strip: boolean;
+}) {
+  const limit = strip ? 4 : compact ? 3 : 4;
+  const activities = day.activities.slice(0, limit);
+  const drive = day.driveHours >= 1 ? day.driveLabel : null;
 
   return (
-    <article className="print-day">
-      <div className="print-day-top" style={{ padding: "10px 10px 0" }}>
-        <img
-          className="print-day-badge"
-          alt=""
-          width={BADGE_W}
-          height={BADGE_H}
-          src={paintDayBadge(day.day, day.color)}
-          style={{
-            display: "inline-block",
-            width: BADGE_W,
-            height: BADGE_H,
-            marginRight: 8,
-            verticalAlign: "middle",
-            border: 0,
-          }}
-        />
-        <span className="print-day-date">{formatDayHeading(day.date)}</span>
+    <article className="print-day" style={{ borderLeftColor: day.color }}>
+      <div className="print-day-top">
+        <span className="print-day-num" style={{ color: day.color }}>
+          {String(day.day).padStart(2, "0")}
+        </span>
+        <span className="print-day-date">
+          {formatDayHeading(day.date)}
+          {drive ? ` · ${drive}` : ""}
+        </span>
       </div>
       <p className="print-day-title">{day.route ?? day.title}</p>
       <ul className="print-day-list">
         {activities.map((item) => (
-          <li key={item} className="print-day-item" style={{ display: "block", lineHeight: "18px" }}>
+          <li key={item} className="print-day-item">
             {item}
           </li>
         ))}
       </ul>
-      <p
-        className="print-day-stay"
-        style={{
-          background: day.color,
-          display: "block",
-          height: 36,
-          lineHeight: "36px",
-          padding: "0 12px",
-          margin: 0,
-          borderRadius: "0 0 8px 8px",
-          fontSize: "12px",
-          fontWeight: 500,
-          color: "#fff",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-        }}
-      >
-        {day.stay}
-      </p>
+      <p className="print-day-stay">{stayLine(day.stay)}</p>
     </article>
   );
 }
 
-function paintDayBadge(day: number, color: string) {
-  const canvas = document.createElement("canvas");
-  canvas.width = BADGE_W * 2;
-  canvas.height = BADGE_H * 2;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return "";
-  ctx.scale(2, 2);
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.roundRect(0, 0, BADGE_W, BADGE_H, 4);
-  ctx.fill();
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "700 12px Arial, Helvetica, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(`DAY ${day}`, BADGE_W / 2, BADGE_H / 2 + 0.5);
-  return canvas.toDataURL("image/png");
+function stayLine(stay: string): string {
+  if (/overnight flight/i.test(stay) || /^home in /i.test(stay)) return stay;
+  return `Overnight · ${stay}`;
+}
+
+function destinationLine(plan: TripPlan): string {
+  const fromSubtitle = plan.subtitle
+    .split("•")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 2 && part.length < 42)
+    .slice(0, 6);
+  if (fromSubtitle.length >= 2) return fromSubtitle.join("  ·  ");
+  if (plan.highlights.length) return plan.highlights.slice(0, 5).join("  ·  ");
+  return "";
+}
+
+function firstSentence(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const match = trimmed.match(/^.*?[.!?](?=\s|$)/);
+  const sentence = (match ? match[0] : trimmed).trim();
+  return sentence.length > 220 ? `${sentence.slice(0, 210).trim()}…` : sentence;
 }
 
 function prettyTitle(value: string): string {
   return value.toLowerCase().replace(/\b([a-z])/g, (ch) => ch.toUpperCase());
 }
 
-function posterMapHeight(aspect: number, rows: number, compact: boolean) {
-  const innerW = POSTER_W - 56;
+function posterMapHeight(aspect: number, dayCount: number, columns: number) {
+  const innerW = POSTER_W - 64;
   const natural = innerW / Math.max(0.5, aspect);
-  const cardH = compact ? 200 : 218;
-  const daysH = rows * cardH + Math.max(0, rows - 1) * 8;
-  const reserved = 48 + 64 + 14 + 12;
-  const maxH = POSTER_H - reserved - daysH;
-  return Math.round(Math.max(280, Math.min(natural, maxH)));
+  const rows = Math.ceil(dayCount / columns);
+  const rowH = dayCount <= 5 ? 172 : dayCount > 8 ? 118 : 126;
+  const header = 196;
+  const footer = 44;
+  const daysBlock = 26 + rows * rowH + Math.max(0, rows - 1) * 10;
+  const maxH = POSTER_H - 40 - header - footer - daysBlock;
+  return Math.round(Math.max(540, Math.min(natural, maxH, 880)));
 }

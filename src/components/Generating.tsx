@@ -5,10 +5,17 @@ const STEPS = [
   "Laying out the map",
 ];
 
-export function Generating({ parkName }: { parkName: string }) {
+export function Generating({ parkName, onHome }: { parkName: string; onHome?: () => void }) {
   return (
     <div className="paper-grid flex min-h-screen flex-col items-center justify-center px-6">
-      <p className="font-display text-sm tracking-[0.28em] text-gold">RIMFOLD</p>
+      <button
+        type="button"
+        onClick={onHome}
+        className="font-display text-sm tracking-[0.28em] text-gold transition hover:text-pine"
+        aria-label="Rimfold home"
+      >
+        RIMFOLD
+      </button>
       <h1 className="mt-4 max-w-lg text-center font-display text-4xl uppercase leading-none tracking-wide text-pine sm:text-5xl">
         Drawing your {parkName} trip
       </h1>

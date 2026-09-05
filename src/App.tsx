@@ -74,7 +74,7 @@ export function App() {
   }, []);
 
   if (status === "generating") {
-    return <Generating parkName={parkName} />;
+    return <Generating parkName={parkName} onHome={goHome} />;
   }
 
   if (status === "ready" && plan) {

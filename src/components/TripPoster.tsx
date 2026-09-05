@@ -116,7 +116,14 @@ export function TripPoster({ plan, onReset }: Props) {
       <div className="screen-app mx-auto grid max-w-[1680px] grid-cols-1 gap-6 p-4 lg:grid-cols-[380px_minmax(0,1fr)] lg:p-6 xl:grid-cols-[400px_minmax(0,1fr)]">
         <aside className="poster-scroll flex flex-col gap-5 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pr-2">
           <div className="no-print flex flex-wrap items-center justify-between gap-3">
-            <p className="font-display text-[11px] tracking-[0.32em] text-gold">RIMFOLD</p>
+            <button
+              type="button"
+              onClick={onReset}
+              className="font-display text-[11px] tracking-[0.32em] text-gold transition hover:text-pine"
+              aria-label="Rimfold home"
+            >
+              RIMFOLD
+            </button>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -140,7 +147,7 @@ export function TripPoster({ plan, onReset }: Props) {
                 onClick={() => void copyText()}
                 className="rounded-full px-3 py-1.5 text-[12px] font-medium text-pine ring-1 ring-pine/20 transition hover:bg-white/60 disabled:opacity-50"
               >
-                {copied === "copied" ? "Copied" : copied === "downloaded" ? "Saved .txt" : "Copy text"}
+                {copied === "copied" ? "Copied" : copied === "downloaded" ? "Saved .txt" : "Copy trip"}
               </button>
               <button
                 type="button"
