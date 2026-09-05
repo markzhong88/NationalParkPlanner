@@ -26,7 +26,15 @@ export function Landing({ value, onChange, onSubmit, onDemo }: Props) {
 
       <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 pt-6 lg:px-8">
         <p className="font-display text-sm tracking-[0.32em] text-gold">RIMFOLD</p>
-        <FeedbackLink className="text-[12px] font-medium text-[#f4efe4]/80 underline decoration-gold/50 underline-offset-4 transition hover:text-[#f4efe4]" />
+        <div className="flex items-center gap-4">
+          <a
+            href="/trips/"
+            className="text-[12px] font-medium text-[#f4efe4]/80 underline decoration-gold/50 underline-offset-4 transition hover:text-[#f4efe4]"
+          >
+            Classic trips
+          </a>
+          <FeedbackLink className="text-[12px] font-medium text-[#f4efe4]/80 underline decoration-gold/50 underline-offset-4 transition hover:text-[#f4efe4]" />
+        </div>
       </header>
 
       <div className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-5 py-12 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
@@ -38,7 +46,14 @@ export function Landing({ value, onChange, onSubmit, onDemo }: Props) {
           </h1>
           <p className="mt-6 max-w-md text-[16px] leading-relaxed text-[#f4efe4]/80">
             Home, park, and days become a daily plan, a cost range, and an artistic map. Stay with
-            one park, or add a nearby park that shares the same drive.
+            one park, or add a nearby park that shares the same drive. Or start from a{" "}
+            <a
+              href="/trips/"
+              className="text-[#f4efe4] underline decoration-gold/60 underline-offset-4"
+            >
+              classic 7-day loop
+            </a>
+            .
           </p>
           {selected ? (
             <p className="mt-8 max-w-md border-l-2 border-gold pl-4 text-sm text-[#f4efe4]/75">
