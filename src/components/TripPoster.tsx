@@ -4,6 +4,7 @@ import type { TripPlan } from "../types";
 import { DayCard } from "./DayCard";
 import { ArtisticMap, type ArtisticMapHandle } from "./ArtisticMap";
 import { CostCard } from "./CostCard";
+import { FeedbackLink } from "./FeedbackLink";
 import { PrintPoster } from "./PrintPoster";
 import {
   captureNodeJpeg,
@@ -166,6 +167,11 @@ export function TripPoster({ plan, onReset }: Props) {
               </div>
             </div>
           </section>
+
+          <p className="no-print px-0.5 text-[12px] text-ink/45">
+            Something off?{" "}
+            <FeedbackLink className="font-medium text-pine/80 underline decoration-gold/60 underline-offset-4 transition hover:text-pine" />
+          </p>
         </aside>
         <section className="min-h-[560px] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)]">
           <ArtisticMap ref={mapRef} plan={plan} selectedDay={selectedDay} onSelectDay={pickDay} />

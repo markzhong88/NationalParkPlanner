@@ -1,0 +1,14 @@
+---
+description: Rimfold is a traditional curated trip planner with no AI product features
+alwaysApply: true
+---
+
+# No AI in the product
+
+Rimfold is a traditional app. Itineraries, maps, costs, lodging copy, and any “custom plan” come from curated park data and normal UI — never from a live model.
+
+- Do not add ChatGPT, OpenAI, or any LLM that writes days, places, hotels, or routes for the user.
+- Do not add an AI chat, “ask AI to change my trip,” or generated-alternate-itineraries.
+- If the user wants a custom plan, use forms and our existing park/block data (or a human-fulfilled request).
+- AI may be used only as a coding assistant. Never mention AI in the UI as a trip feature.
+- Prefer cool traditional features: poster export, map, save/share, structured plan edits, print.

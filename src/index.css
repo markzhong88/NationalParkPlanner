@@ -399,21 +399,11 @@ button {
 
 .print-day-badge {
   display: inline-block;
-  margin-right: 8px;
-  min-width: 64px;
+  width: 78px;
   height: 26px;
-  box-sizing: border-box;
-  border-radius: 4px;
-  padding: 0 10px;
-  font-family: Oswald, sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 26px;
-  letter-spacing: 0.04em;
-  color: #fff;
-  text-align: center;
-  white-space: nowrap;
+  margin-right: 8px;
   vertical-align: middle;
+  border: 0;
 }
 
 .print-day-date {
