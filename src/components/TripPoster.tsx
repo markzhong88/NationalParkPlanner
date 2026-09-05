@@ -16,6 +16,7 @@ import {
   waitForImage,
   waitFrames,
 } from "../lib/exportPoster";
+import { copyTripText } from "../lib/tripText";
 
 type Props = {
   plan: TripPlan;
@@ -25,7 +26,8 @@ type Props = {
 export function TripPoster({ plan, onReset }: Props) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [mapImage, setMapImage] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"png" | "pdf" | null>(null);
+  const [busy, setBusy] = useState<"png" | "pdf" | "text" | null>(null);
+  const [copied, setCopied] = useState<"copied" | "downloaded" | false>(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const skipScroll = useRef(true);
   const mapRef = useRef<ArtisticMapHandle>(null);
@@ -46,6 +48,14 @@ export function TripPoster({ plan, onReset }: Props) {
     document.body.classList.toggle("has-print-sheet", Boolean(mapImage));
     return () => document.body.classList.remove("has-print-sheet");
   }, [mapImage]);
+
+  useEffect(() => {
+    const previous = document.title;
+    document.title = `${prettyTitle(plan.title)} — Rimfold`;
+    return () => {
+      document.title = previous;
+    };
+  }, [plan.title]);
 
   const pickDay = (day: number) => {
     setSelectedDay((current) => (current === day ? null : day));
@@ -86,6 +96,21 @@ export function TripPoster({ plan, onReset }: Props) {
     }
   };
 
+  const copyText = async () => {
+    if (busy) return;
+    setBusy("text");
+    setExportError(null);
+    try {
+      const result = await copyTripText(plan);
+      setCopied(result);
+      window.setTimeout(() => setCopied(false), 2200);
+    } catch {
+      setExportError("Couldn’t copy the itinerary. Try again, or download the PDF.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <div className="paper-grid min-h-screen">
       <div className="screen-app mx-auto grid max-w-[1680px] grid-cols-1 gap-6 p-4 lg:grid-cols-[380px_minmax(0,1fr)] lg:p-6 xl:grid-cols-[400px_minmax(0,1fr)]">
@@ -108,6 +133,14 @@ export function TripPoster({ plan, onReset }: Props) {
                 className="rounded-full px-3 py-1.5 text-[12px] font-medium text-pine ring-1 ring-pine/20 transition hover:bg-white/60 disabled:opacity-50"
               >
                 {busy === "pdf" ? "Preparing…" : "Download PDF"}
+              </button>
+              <button
+                type="button"
+                disabled={busy != null}
+                onClick={() => void copyText()}
+                className="rounded-full px-3 py-1.5 text-[12px] font-medium text-pine ring-1 ring-pine/20 transition hover:bg-white/60 disabled:opacity-50"
+              >
+                {copied === "copied" ? "Copied" : copied === "downloaded" ? "Saved .txt" : "Copy text"}
               </button>
               <button
                 type="button"

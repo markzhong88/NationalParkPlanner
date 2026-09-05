@@ -1,7 +1,7 @@
 import { toJpeg, toPng } from "html-to-image";
 import type { TripPlan } from "../types";
 
-export function posterFilename(plan: TripPlan, ext: "png" | "pdf"): string {
+export function posterFilename(plan: TripPlan, ext: "png" | "pdf" | "txt"): string {
   const slug = plan.parkName
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")

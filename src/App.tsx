@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getPark } from "./data/parks";
 import { Generating } from "./components/Generating";
 import { Landing } from "./components/Landing";
@@ -6,6 +6,7 @@ import { TripPoster } from "./components/TripPoster";
 import { heuristicEstimate, requestFromPlan } from "./lib/estimateCost";
 import { defaultStartDate } from "./lib/format";
 import { generateTrip } from "./lib/generateTrip";
+import { clearTripUrl, tripFromSearch, writeTripUrl } from "./lib/tripUrl";
 import type { TripInput, TripPlan } from "./types";
 
 const DEMO: TripInput = {
@@ -16,6 +17,8 @@ const DEMO: TripInput = {
   days: 7,
   startDate: "2027-03-20",
 };
+
+const DEFAULT_TITLE = "Rimfold — National Park Trip Planner";
 
 export function App() {
   const [input, setInput] = useState<TripInput>({
@@ -29,8 +32,11 @@ export function App() {
   const [status, setStatus] = useState<"form" | "generating" | "ready">("form");
   const [plan, setPlan] = useState<TripPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const bootstrapped = useRef(false);
 
   const goHome = () => {
+    clearTripUrl();
+    document.title = DEFAULT_TITLE;
     setStatus("form");
   };
 
@@ -40,6 +46,7 @@ export function App() {
   );
 
   const run = async (next = input) => {
+    setInput(next);
     setError(null);
     setStatus("generating");
     const started = Date.now();
@@ -48,6 +55,7 @@ export function App() {
       result.cost = heuristicEstimate(requestFromPlan(result, next));
       const wait = Math.max(0, 1400 - (Date.now() - started));
       await sleep(wait);
+      writeTripUrl(next);
       setPlan(result);
       setStatus("ready");
     } catch {
@@ -56,6 +64,14 @@ export function App() {
       setStatus("form");
     }
   };
+
+  useEffect(() => {
+    if (bootstrapped.current) return;
+    const parsed = tripFromSearch();
+    if (!parsed) return;
+    bootstrapped.current = true;
+    void run(parsed);
+  }, []);
 
   if (status === "generating") {
     return <Generating parkName={parkName} />;
@@ -77,7 +93,6 @@ export function App() {
         onChange={setInput}
         onSubmit={() => void run()}
         onDemo={() => {
-          setInput(DEMO);
           void run(DEMO);
         }}
       />

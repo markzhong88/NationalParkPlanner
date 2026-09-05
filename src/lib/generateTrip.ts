@@ -19,6 +19,7 @@ import {
   travelerLabel,
 } from "./format";
 import { fetchDrivingRoute, formatHours, geocodePlace, haversineMiles, estimateDriveHours } from "./geo";
+import { buildStyleNote } from "./styleNote";
 
 const FLY_THRESHOLD_MILES = 380;
 
@@ -135,9 +136,18 @@ export async function generateTrip(input: TripInput): Promise<TripPlan> {
     ]).join("  •  "),
     dateRange: formatDateRange(start, input.days),
     travelers: travelerLabel(input.adults, input.kids),
-    styleNote: family
-      ? "A relaxed family trip: mornings and evenings outside, drives in the heat of the day, and time to swim."
-      : "A scenic loop with the headline viewpoints, a sane drive each day, and a sunset worth stopping for.",
+    styleNote: buildStyleNote({
+      blurb: park.blurb,
+      parkId: park.id,
+      gatewayCity: park.gateway.city,
+      family,
+      flying,
+      days: input.days,
+      stayNames: uniqueNames(
+        nights.filter((n) => !n.isGatewayReturn).map((n) => n.area.name),
+      ),
+      start,
+    }),
     highlights: allocations.slice(0, 4).map((a) => a.block.label),
     days,
     mapStops,
