@@ -46,7 +46,8 @@ export async function waitForImage(img: HTMLImageElement) {
 }
 
 export const POSTER_W = 1056;
-export const POSTER_H = 1632;
+/** A4 portrait at the same CSS width (210 × 297 mm). */
+export const POSTER_H = 1494;
 const POSTER_RATIO = 2;
 
 const POSTER_STYLE: Partial<CSSStyleDeclaration> = {
@@ -180,8 +181,8 @@ function loadHtmlImage(src: string): Promise<HTMLImageElement> {
 export async function jpegDataUrlToPdf(dataUrl: string): Promise<Blob> {
   const jpeg = dataUrlToBytes(dataUrl);
   const { width, height } = await dataUrlSize(dataUrl);
-  const pageW = 11 * 72;
-  const pageH = 17 * 72;
+  const pageW = 595.28;
+  const pageH = 841.89;
   const scale = Math.min(pageW / width, pageH / height);
   const drawW = width * scale;
   const drawH = height * scale;

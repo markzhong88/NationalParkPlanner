@@ -162,13 +162,13 @@ function prettyTitle(value: string): string {
 }
 
 function posterMapHeight(aspect: number, dayCount: number, columns: number) {
-  const innerW = POSTER_W - 64;
+  const innerW = POSTER_W - 56;
   const natural = innerW / Math.max(0.5, aspect);
   const rows = Math.ceil(dayCount / columns);
-  const rowH = dayCount <= 5 ? 172 : dayCount > 8 ? 118 : 126;
-  const header = 196;
-  const footer = 44;
-  const daysBlock = 26 + rows * rowH + Math.max(0, rows - 1) * 10;
-  const maxH = POSTER_H - 40 - header - footer - daysBlock;
-  return Math.round(Math.max(540, Math.min(natural, maxH, 880)));
+  const rowH = dayCount <= 5 ? 188 : dayCount > 8 ? 172 : 144;
+  const header = 200;
+  const footer = 46;
+  const daysBlock = 24 + rows * rowH + Math.max(0, rows - 1) * 10;
+  const maxH = POSTER_H - 36 - header - footer - daysBlock;
+  return Math.round(Math.max(420, Math.min(natural, maxH, 720)));
 }
