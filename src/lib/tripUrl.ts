@@ -1,4 +1,5 @@
 import { getPark } from "../data/parks";
+import { nearbyAddon } from "../data/nearbyParks";
 import type { TripInput } from "../types";
 import { defaultStartDate } from "./format";
 
@@ -7,12 +8,17 @@ export function tripFromSearch(search = window.location.search): TripInput | nul
   const parkId = (q.get("park") ?? "").trim();
   const home = (q.get("from") ?? q.get("home") ?? "").trim();
   if (!getPark(parkId) || home.length < 2) return null;
+  const alsoRaw = (q.get("also") ?? "").trim();
+  const alsoParkId = nearbyAddon(parkId, alsoRaw) ? alsoRaw : undefined;
+  const addon = nearbyAddon(parkId, alsoParkId);
+  const days = clampInt(q.get("days"), 3, 10, addon?.minDays ?? 7);
   return {
     home: home.slice(0, 80),
     parkId,
+    alsoParkId,
     adults: clampInt(q.get("adults"), 1, 8, 2),
     kids: clampInt(q.get("kids"), 0, 8, 2),
-    days: clampInt(q.get("days"), 3, 10, 7),
+    days: addon ? Math.max(days, addon.minDays) : days,
     startDate: validDate(q.get("start")) ?? defaultStartDate(),
   };
 }
@@ -20,6 +26,9 @@ export function tripFromSearch(search = window.location.search): TripInput | nul
 export function tripShareUrl(input: TripInput, loc = window.location): string {
   const q = new URLSearchParams();
   q.set("park", input.parkId);
+  if (input.alsoParkId && nearbyAddon(input.parkId, input.alsoParkId)) {
+    q.set("also", input.alsoParkId);
+  }
   q.set("from", input.home.trim());
   q.set("adults", String(input.adults));
   q.set("kids", String(input.kids));

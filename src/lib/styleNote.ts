@@ -1,6 +1,7 @@
 export function buildStyleNote(opts: {
   blurb: string;
   parkId: string;
+  alsoParkId?: string;
   gatewayCity: string;
   family: boolean;
   flying: boolean;
@@ -12,7 +13,7 @@ export function buildStyleNote(opts: {
     trimSentence(opts.blurb),
     scheduleSentence(opts),
     opts.family ? familyPace(opts.parkId) : adultPace(opts.parkId),
-    seasonHint(opts.parkId, opts.start.getMonth()),
+    seasonHint(opts.parkId, opts.start.getMonth(), opts.alsoParkId),
   ].filter(Boolean);
   return parts.join(" ");
 }
@@ -49,13 +50,14 @@ function adultPace(parkId: string): string {
   );
 }
 
-function seasonHint(parkId: string, month: number): string {
+function seasonHint(parkId: string, month: number, alsoParkId?: string): string {
   const summer = month >= 4 && month <= 8;
   const winterish = month <= 3 || month >= 10;
-  if (summer && HEAT_PARKS.has(parkId)) {
+  const ids = [parkId, alsoParkId].filter(Boolean) as string[];
+  if (summer && ids.some((id) => HEAT_PARKS.has(id))) {
     return "Start early and sit out the hottest hours.";
   }
-  if (winterish && SNOW_ROAD_PARKS.has(parkId)) {
+  if (winterish && ids.some((id) => SNOW_ROAD_PARKS.has(id))) {
     return "High roads may still be seasonal — the valley or west-side days still work if a pass is closed.";
   }
   if (winterish && parkId === "crater-lake") {

@@ -1,4 +1,4 @@
-import { PARKS } from "../data/parks";
+import { resolvePark } from "../data/nearbyParks";
 import { publicUrl } from "../lib/assets";
 import { FeedbackLink } from "./FeedbackLink";
 import { PlannerForm } from "./PlannerForm";
@@ -12,7 +12,7 @@ type Props = {
 };
 
 export function Landing({ value, onChange, onSubmit, onDemo }: Props) {
-  const selected = PARKS.find((p) => p.id === value.parkId);
+  const selected = resolvePark(value.parkId, value.alsoParkId);
 
   return (
     <div className="relative flex min-h-[100svh] flex-col overflow-hidden bg-ink">
@@ -37,8 +37,8 @@ export function Landing({ value, onChange, onSubmit, onDemo }: Props) {
             <span className="block text-gold">We’ll draw the trip.</span>
           </h1>
           <p className="mt-6 max-w-md text-[16px] leading-relaxed text-[#f4efe4]/80">
-            A few details — home, park, adults, kids, days — become a daily plan, a cost
-            range, and an artistic map.
+            Home, park, and days become a daily plan, a cost range, and an artistic map. Stay with
+            one park, or add a nearby park that shares the same drive.
           </p>
           {selected ? (
             <p className="mt-8 max-w-md border-l-2 border-gold pl-4 text-sm text-[#f4efe4]/75">
@@ -49,7 +49,7 @@ export function Landing({ value, onChange, onSubmit, onDemo }: Props) {
         <div className="rounded-2xl bg-[#f4efe4]/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] ring-1 ring-white/40 backdrop-blur">
           <h2 className="font-display text-2xl tracking-wide text-pine">Plan a trip</h2>
           <p className="mt-1 mb-5 text-sm text-ink-soft">
-            We’ll build the days, a cost estimate, and a poster-style map.
+            One park or a classic two-park loop — then a poster-style map.
           </p>
           <PlannerForm value={value} onChange={onChange} onSubmit={onSubmit} onDemo={onDemo} />
         </div>

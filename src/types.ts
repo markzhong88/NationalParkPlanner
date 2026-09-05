@@ -6,6 +6,8 @@ export type Coordinates = {
 export type TripInput = {
   home: string;
   parkId: string;
+  /** Optional curated neighbor, e.g. Zion + Grand Canyon. */
+  alsoParkId?: string;
   adults: number;
   kids: number;
   days: number;

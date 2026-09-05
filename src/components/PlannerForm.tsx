@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
-import { PARKS_BY_POPULARITY } from "../data/parks";
+import { BAKED_IN_LOOP, nearbyAddon, nearbyAddons } from "../data/nearbyParks";
+import { getPark, PARKS_BY_POPULARITY } from "../data/parks";
 import type { TripInput } from "../types";
 import { HomeSearch } from "./HomeSearch";
 
@@ -12,10 +13,35 @@ type Props = {
 
 export function PlannerForm({ value, onChange, onSubmit, onDemo }: Props) {
   const patch = (partial: Partial<TripInput>) => onChange({ ...value, ...partial });
+  const addons = nearbyAddons(value.parkId);
+  const bakedIn = BAKED_IN_LOOP[value.parkId];
+  const selectedAddon = nearbyAddon(value.parkId, value.alsoParkId);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     onSubmit();
+  };
+
+  const setPark = (parkId: string) => {
+    const nextAddon = nearbyAddon(parkId, value.alsoParkId);
+    patch({ parkId, alsoParkId: nextAddon?.id });
+  };
+
+  const setAlsoPark = (alsoParkId: string) => {
+    const addon = nearbyAddon(value.parkId, alsoParkId);
+    if (!addon) {
+      patch({ alsoParkId: undefined });
+      return;
+    }
+    patch({ alsoParkId: addon.id, days: Math.max(value.days, addon.minDays) });
+  };
+
+  const setDays = (days: number) => {
+    const addon = nearbyAddon(value.parkId, value.alsoParkId);
+    patch({
+      days,
+      alsoParkId: addon && days < addon.minDays ? undefined : value.alsoParkId,
+    });
   };
 
   return (
@@ -34,7 +60,7 @@ export function PlannerForm({ value, onChange, onSubmit, onDemo }: Props) {
         <select
           required
           value={value.parkId}
-          onChange={(e) => patch({ parkId: e.target.value })}
+          onChange={(e) => setPark(e.target.value)}
           className="rounded-xl border border-ink/10 bg-white/90 px-3.5 py-3 text-[15px] outline-none ring-pine/30 transition focus:ring-2"
         >
           {PARKS_BY_POPULARITY.map((p) => (
@@ -43,7 +69,37 @@ export function PlannerForm({ value, onChange, onSubmit, onDemo }: Props) {
             </option>
           ))}
         </select>
+        {bakedIn ? <p className="text-[12px] leading-snug text-ink-soft">{bakedIn}</p> : null}
       </label>
+
+      {addons.length ? (
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-soft">
+            Also visit
+          </span>
+          <select
+            value={value.alsoParkId ?? ""}
+            onChange={(e) => setAlsoPark(e.target.value)}
+            className="rounded-xl border border-ink/10 bg-white/90 px-3.5 py-3 text-[15px] outline-none ring-pine/30 transition focus:ring-2"
+          >
+            <option value="">Just this park</option>
+            {addons.map((addon) => {
+              const park = getPark(addon.id);
+              if (!park) return null;
+              return (
+                <option key={addon.id} value={addon.id}>
+                  {`${park.shortName} — ${addon.driveLabel}${value.days < addon.minDays ? `, ${addon.minDays}+ days` : ""}`}
+                </option>
+              );
+            })}
+          </select>
+          <p className="text-[12px] leading-snug text-ink-soft">
+            {selectedAddon
+              ? `We’ll add ${getPark(selectedAddon.id)?.shortName} as a second park on this loop.`
+              : "Optional second park, only if it shares a real drive with the first."}
+          </p>
+        </label>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-3">
         <NumberField
@@ -67,7 +123,7 @@ export function PlannerForm({ value, onChange, onSubmit, onDemo }: Props) {
         value={value.days}
         min={3}
         max={10}
-        onChange={(days) => patch({ days })}
+        onChange={setDays}
       />
 
       <label className="flex flex-col gap-1.5">

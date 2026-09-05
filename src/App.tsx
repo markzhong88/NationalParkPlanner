@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getPark } from "./data/parks";
+import { parkLabel } from "./data/nearbyParks";
 import { Generating } from "./components/Generating";
 import { Landing } from "./components/Landing";
 import { TripPoster } from "./components/TripPoster";
@@ -41,8 +41,8 @@ export function App() {
   };
 
   const parkName = useMemo(
-    () => getPark(input.parkId)?.shortName ?? "national park",
-    [input.parkId],
+    () => parkLabel(input.parkId, input.alsoParkId),
+    [input.parkId, input.alsoParkId],
   );
 
   const run = async (next = input) => {

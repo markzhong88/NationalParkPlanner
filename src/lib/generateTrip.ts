@@ -1,4 +1,4 @@
-import { getPark } from "../data/parks";
+import { resolvePark } from "../data/nearbyParks";
 import { findCity } from "../data/cities";
 import type {
   Coordinates,
@@ -30,7 +30,7 @@ type NightStay = {
 };
 
 export async function generateTrip(input: TripInput): Promise<TripPlan> {
-  const park = getPark(input.parkId);
+  const park = resolvePark(input.parkId, input.alsoParkId);
   if (!park) throw new Error("Unknown park");
 
   const home = await resolveHome(input.home);
@@ -138,7 +138,8 @@ export async function generateTrip(input: TripInput): Promise<TripPlan> {
     travelers: travelerLabel(input.adults, input.kids),
     styleNote: buildStyleNote({
       blurb: park.blurb,
-      parkId: park.id,
+      parkId: input.parkId,
+      alsoParkId: input.alsoParkId,
       gatewayCity: park.gateway.city,
       family,
       flying,
