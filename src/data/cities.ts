@@ -65,6 +65,8 @@ export const CITIES: City[] = [
   { name: "Rapid City", state: "SD", coord: { lng: -103.231, lat: 44.0805 }, airport: "RAP" },
   { name: "Medford", state: "OR", coord: { lng: -122.8756, lat: 42.3265 }, airport: "MFR" },
   { name: "Little Rock", state: "AR", coord: { lng: -92.2896, lat: 34.7465 }, airport: "LIT" },
+  { name: "Charleston", state: "SC", coord: { lng: -79.9311, lat: 32.7765 }, airport: "CHS" },
+  { name: "Charleston", state: "WV", coord: { lng: -81.6326, lat: 38.3498 }, airport: "CRW", aliases: ["charleston wv", "charleston, wv"] },
 ];
 
 export function findCity(query: string): City | undefined {

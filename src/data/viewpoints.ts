@@ -135,6 +135,21 @@ export const EXTRA_VIEWPOINTS: Record<string, Landmark[]> = {
     p("bahia-honda", "Bahia Honda State Park", -81.274, 24.659),
     p("seven-mile", "Seven Mile Bridge", -81.128, 24.697),
   ],
+  "indiana-dunes": [
+    p("portage-lakefront", "Portage Lakefront", -87.1775, 41.6169),
+    p("central-beach", "Central Beach", -86.999, 41.673),
+    p("chellberg", "Chellberg Farm", -87.086, 41.645),
+  ],
+  "gateway-arch": [
+    p("city-museum", "City Museum", -90.2005, 38.6334),
+    p("forest-park", "Forest Park", -90.285, 38.638),
+    p("laclede", "Laclede's Landing", -90.184, 38.632),
+  ],
+  "new-river-gorge": [
+    p("canyon-rim", "Canyon Rim", -81.0759, 38.0701),
+    p("cathedral-falls", "Cathedral Falls", -81.1795, 38.1534),
+    p("sandstone-falls", "Sandstone Falls", -80.905, 37.758),
+  ],
 };
 
 export const VIEWPOINT_SEARCH: Record<string, string> = {
@@ -212,4 +227,13 @@ export const VIEWPOINT_SEARCH: Record<string, string> = {
   "fort-zachary": "Fort Zachary Taylor",
   "bahia-honda": "Bahia Honda State Park",
   "seven-mile": "Seven Mile Bridge",
+  "portage-lakefront": "Portage Lakefront Indiana Dunes",
+  "central-beach": "Central Beach Indiana Dunes",
+  chellberg: "Chellberg Farm Indiana Dunes",
+  "city-museum": "City Museum St Louis",
+  "forest-park": "Forest Park St Louis",
+  laclede: "Lacledes Landing St Louis",
+  "canyon-rim": "Canyon Rim Visitor Center New River Gorge",
+  "cathedral-falls": "Cathedral Falls West Virginia",
+  "sandstone-falls": "Sandstone Falls New River Gorge",
 };

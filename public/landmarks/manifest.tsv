@@ -71,6 +71,15 @@ promenade	SKIP
 rim-village	SKIP
 wizard	SKIP
 phantom-ship	SKIP
-southernmost	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Southernmost_point_in_the_continental_USA.jpg?width=800
-mallory	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Mallory_Square.jpg?width=800
-dry-tortugas	FAIL	Error: 404 https://commons.wikimedia.org/wiki/Special:FilePath/Fort_Jefferson_Dry_Tortugas.jpg?width=800
+southernmost	SKIP
+mallory	SKIP
+dry-tortugas	SKIP
+west-beach	SKIP
+mount-baldy	SKIP
+cowles-bog	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Cowles_bog_in_the_spring.jpg?width=800
+gateway-span	SKIP
+old-courthouse	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/Old_Saint_Louis_Courthouse_-_Saint_Louis%2C_Missouri_-_March_31%2C_2014.jpg?width=800
+stl-riverfront	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/St_Louis_Gateway_Arch_and_riverfront_(HDR1).jpg?width=800
+nrg-bridge	SKIP
+endless-wall	FILE	https://commons.wikimedia.org/wiki/Special:FilePath/The_view_from_Diamond_Point_on_the_Endless_Wall_Trail_is_one_of_the_most_spectacular_viewpoints_in_the_park._(d2ed428b-da0b-4036-bed6-ea83f8979cf3).JPG?width=800
+nrg-grandview	OK	https://commons.wikimedia.org/wiki/Special:FilePath/Grandview_Overlook%2C_New_River.jpg?width=800

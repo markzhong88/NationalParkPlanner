@@ -84,6 +84,15 @@ const ARTICLES = {
   southernmost: "Southernmost Point Buoy",
   mallory: "Mallory Square",
   "dry-tortugas": "Dry Tortugas National Park",
+  "west-beach": "Indiana Dunes National Park",
+  "mount-baldy": "Mount Baldy (Indiana)",
+  "cowles-bog": "Cowles Bog",
+  "gateway-span": "Gateway Arch",
+  "old-courthouse": "Old Courthouse (St. Louis, Missouri)",
+  "stl-riverfront": "Jefferson National Expansion Memorial",
+  "nrg-bridge": "New River Gorge Bridge",
+  "endless-wall": "New River Gorge National Park and Preserve",
+  "nrg-grandview": "Grandview (West Virginia)",
 };
 
 const FILES = {
@@ -115,6 +124,15 @@ const FILES = {
   southernmost: "Southernmost_point_buoy,_NE_view.jpg",
   mallory: "Mallory_Square.jpg",
   "dry-tortugas": "Fort-Jefferson_Dry-Tortugas.jpg",
+  "west-beach": "Indiana_Dunes_National_Park.jpg",
+  "mount-baldy": "Mount_Baldy_(Indiana).jpg",
+  "cowles-bog": "Cowles_bog_in_the_spring.jpg",
+  "gateway-span": "Gateway_Arch_St_Louis.jpg",
+  "old-courthouse": "Old_Saint_Louis_Courthouse_-_Saint_Louis,_Missouri_-_March_31,_2014.jpg",
+  "stl-riverfront": "St_Louis_Gateway_Arch_and_riverfront_(HDR1).jpg",
+  "nrg-bridge": "New_River_Gorge_Bridge.jpg",
+  "endless-wall": "The_view_from_Diamond_Point_on_the_Endless_Wall_Trail_is_one_of_the_most_spectacular_viewpoints_in_the_park._(d2ed428b-da0b-4036-bed6-ea83f8979cf3).JPG",
+  "nrg-grandview": "Grandview_Overlook,_New_River.jpg",
 };
 
 async function exists(file) {

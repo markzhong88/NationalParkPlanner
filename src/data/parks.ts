@@ -1967,6 +1967,213 @@ export const PARKS: ParkProfile[] = [
     ],
   },
   {
+    id: "indiana-dunes",
+    name: "Indiana Dunes National Park",
+    shortName: "Indiana Dunes",
+    state: "Indiana",
+    regionTitle: "Lake Michigan",
+    blurb: "Living dunes on Lake Michigan, a Chicago-side beach day, and mill-town sunsets.",
+    coord: { lng: -87.0878, lat: 41.6306 },
+    gateway: {
+      city: "Chicago",
+      airport: "ORD",
+      coord: { lng: -87.6298, lat: 41.8781 },
+    },
+    typicalLoopMiles: 90,
+    stayAreas: [
+      {
+        id: "chesterton",
+        name: "Chesterton / Porter",
+        coord: { lng: -87.0642, lat: 41.6106 },
+        lodging: "Chesterton / Porter — many hotels near I-94",
+        lodgingKind: "area",
+      },
+      {
+        id: "michigan-city",
+        name: "Michigan City",
+        coord: { lng: -86.895, lat: 41.7075 },
+        lodging: "Michigan City — lakefront hotels",
+        lodgingKind: "area",
+      },
+    ],
+    blocks: [
+      {
+        id: "west-dunes",
+        label: "West Beach & the Portage shore",
+        areaId: "chesterton",
+        driveHoursFromPrev: 1,
+        driveFrom: "Chicago",
+        stayNights: 2,
+        activities: [
+          "West Beach dunes and Lake Michigan swim",
+          "Portage Lakefront and Riverwalk",
+          "Cowles Bog boardwalk if the trail is open",
+        ],
+        familyActivities: [
+          "West Beach — short walk to the water",
+          "Ice cream in Chesterton after the beach",
+          "Junior Ranger at the Indiana Dunes Visitor Center",
+        ],
+      },
+      {
+        id: "east-dunes",
+        label: "Mount Baldy & Michigan City",
+        areaId: "michigan-city",
+        driveHoursFromPrev: 0.5,
+        driveFrom: "Chesterton",
+        stayNights: 1,
+        activities: [
+          "Mount Baldy overlook of Lake Michigan",
+          "Central Beach if the access trail is open",
+          "Walk the Michigan City lakefront at sunset",
+        ],
+      },
+    ],
+    landmarks: [
+      { id: "west-beach", name: "West Beach", coord: { lng: -87.2053, lat: 41.6258 }, photo: img("west-beach") },
+      { id: "mount-baldy", name: "Mount Baldy", coord: { lng: -86.9314, lat: 41.7083 }, photo: img("mount-baldy") },
+      { id: "cowles-bog", name: "Cowles Bog", coord: { lng: -87.0864, lat: 41.6425 }, photo: img("cowles-bog") },
+    ],
+  },
+  {
+    id: "gateway-arch",
+    name: "Gateway Arch National Park",
+    shortName: "Gateway Arch",
+    state: "Missouri",
+    regionTitle: "St. Louis",
+    blurb: "Ride to the top of the Arch, then walk a river city — museum, courthouse, and sunset on the Mississippi.",
+    coord: { lng: -90.1848, lat: 38.6245 },
+    gateway: {
+      city: "St. Louis",
+      airport: "STL",
+      coord: { lng: -90.1994, lat: 38.627 },
+    },
+    typicalLoopMiles: 40,
+    stayAreas: [
+      {
+        id: "downtown-stl",
+        name: "Downtown St. Louis",
+        coord: { lng: -90.191, lat: 38.627 },
+        lodging: "Downtown St. Louis — many hotels by the Arch",
+        lodgingKind: "area",
+      },
+      {
+        id: "central-west",
+        name: "Central West End",
+        coord: { lng: -90.261, lat: 38.644 },
+        lodging: "Central West End / Forest Park — many hotels",
+        lodgingKind: "area",
+      },
+    ],
+    blocks: [
+      {
+        id: "arch-grounds",
+        label: "Arch & the riverfront",
+        areaId: "downtown-stl",
+        driveHoursFromPrev: 0.4,
+        driveFrom: "St. Louis",
+        stayNights: 2,
+        activities: [
+          "Gateway Arch tram to the top (timed tickets)",
+          "Museum under the Arch and the Old Courthouse",
+          "Sunset walk on the Mississippi riverfront",
+        ],
+        familyActivities: [
+          "Arch tram — book morning tickets",
+          "City Museum if the kids need an indoor playground",
+          "Ice cream on the riverfront",
+        ],
+      },
+      {
+        id: "forest-park-day",
+        label: "Forest Park",
+        areaId: "central-west",
+        driveHoursFromPrev: 0.3,
+        driveFrom: "Downtown St. Louis",
+        stayNights: 1,
+        activities: [
+          "Forest Park — zoo, art museum lawn, or a bike loop",
+          "Central West End stroll and dinner",
+          "Easy evening back toward the Arch lights",
+        ],
+      },
+    ],
+    landmarks: [
+      { id: "gateway-span", name: "Gateway Arch", coord: { lng: -90.1848, lat: 38.6245 }, photo: img("gateway-span") },
+      { id: "old-courthouse", name: "Old Courthouse", coord: { lng: -90.189, lat: 38.6256 }, photo: img("old-courthouse") },
+      { id: "stl-riverfront", name: "Mississippi riverfront", coord: { lng: -90.1815, lat: 38.6258 }, photo: img("stl-riverfront") },
+    ],
+  },
+  {
+    id: "new-river-gorge",
+    name: "New River Gorge National Park and Preserve",
+    shortName: "New River Gorge",
+    state: "West Virginia",
+    regionTitle: "New River Gorge",
+    blurb: "A deep Appalachian gorge, the famous bridge, and a Fayetteville base for overlooks and easy rim walks.",
+    coord: { lng: -81.0759, lat: 38.0701 },
+    gateway: {
+      city: "Charleston",
+      airport: "CRW",
+      coord: { lng: -81.6326, lat: 38.3498 },
+    },
+    typicalLoopMiles: 120,
+    stayAreas: [
+      {
+        id: "fayetteville",
+        name: "Fayetteville",
+        coord: { lng: -81.1037, lat: 38.0532 },
+        lodging: "Fayetteville — small-town inns (book early on weekends)",
+        lodgingKind: "area",
+      },
+      {
+        id: "beckley",
+        name: "Beckley",
+        coord: { lng: -81.1882, lat: 37.7782 },
+        lodging: "Beckley — more hotels along the interstate",
+        lodgingKind: "area",
+      },
+    ],
+    blocks: [
+      {
+        id: "canyon-rim",
+        label: "Canyon Rim & the bridge",
+        areaId: "fayetteville",
+        driveHoursFromPrev: 1,
+        driveFrom: "Charleston",
+        stayNights: 2,
+        activities: [
+          "Canyon Rim Visitor Center and bridge overlook",
+          "Endless Wall Trail to Diamond Point",
+          "Walk downtown Fayetteville at dinner",
+        ],
+        familyActivities: [
+          "Canyon Rim boardwalk to the bridge view",
+          "Short walk in Fayetteville after ice cream",
+          "Optional Bridge Walk if ages and timing work",
+        ],
+      },
+      {
+        id: "grandview-day",
+        label: "Grandview & the lower gorge",
+        areaId: "beckley",
+        driveHoursFromPrev: 0.6,
+        driveFrom: "Fayetteville",
+        stayNights: 1,
+        activities: [
+          "Grandview Main Overlook",
+          "Sandstone Falls boardwalk if the road is open",
+          "Cathedral Falls pull-off on the drive",
+        ],
+      },
+    ],
+    landmarks: [
+      { id: "nrg-bridge", name: "New River Gorge Bridge", coord: { lng: -81.0836, lat: 38.0694 }, photo: img("nrg-bridge") },
+      { id: "endless-wall", name: "Endless Wall", coord: { lng: -81.0667, lat: 38.0625 }, photo: img("endless-wall") },
+      { id: "nrg-grandview", name: "Grandview", coord: { lng: -81.0664, lat: 37.8317 }, photo: img("nrg-grandview") },
+    ],
+  },
+  {
     id: "key-west",
     name: "Key West & Dry Tortugas",
     shortName: "Key West",
@@ -2050,6 +2257,48 @@ export const PARKS: ParkProfile[] = [
     ],
   },
 ];
+
+/** 2024 NPS recreation visits — sorts the park picker by popularity. */
+export const PARK_VISITORS: Record<string, number> = {
+  "great-smoky": 12_191_834,
+  zion: 4_946_592,
+  "grand-canyon": 4_919_163,
+  yellowstone: 4_744_353,
+  "rocky-mountain": 4_154_349,
+  yosemite: 4_121_807,
+  acadia: 3_961_661,
+  olympic: 3_717_267,
+  "grand-teton": 3_628_222,
+  glacier: 3_208_755,
+  "joshua-tree": 2_991_874,
+  cuyahoga: 2_912_454,
+  "indiana-dunes": 2_705_209,
+  "gateway-arch": 2_563_052,
+  "bryce-canyon": 2_498_075,
+  "hot-springs": 2_461_812,
+  "new-river-gorge": 1_811_937,
+  shenandoah: 1_720_211,
+  "mount-rainier": 1_620_006,
+  arches: 1_466_528,
+  "death-valley": 1_440_421,
+  "hawaii-volcanoes": 1_433_593,
+  "capitol-reef": 1_422_490,
+  sequoia: 1_309_573,
+  badlands: 1_094_245,
+  everglades: 741_983,
+  "crater-lake": 504_942,
+  "key-west": 84_873,
+};
+
+export function parksByPopularity(): ParkProfile[] {
+  return [...PARKS].sort(
+    (a, b) =>
+      (PARK_VISITORS[b.id] ?? 0) - (PARK_VISITORS[a.id] ?? 0) ||
+      a.shortName.localeCompare(b.shortName),
+  );
+}
+
+export const PARKS_BY_POPULARITY = parksByPopularity();
 
 export function getPark(id: string): ParkProfile | undefined {
   const park = PARKS.find((p) => p.id === id);

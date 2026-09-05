@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import { PARKS } from "../data/parks";
+import { PARKS_BY_POPULARITY } from "../data/parks";
 import type { TripInput } from "../types";
 import { HomeSearch } from "./HomeSearch";
 
@@ -37,9 +37,7 @@ export function PlannerForm({ value, onChange, onSubmit, onDemo }: Props) {
           onChange={(e) => patch({ parkId: e.target.value })}
           className="rounded-xl border border-ink/10 bg-white/90 px-3.5 py-3 text-[15px] outline-none ring-pine/30 transition focus:ring-2"
         >
-          {[...PARKS]
-            .sort((a, b) => a.shortName.localeCompare(b.shortName))
-            .map((p) => (
+          {PARKS_BY_POPULARITY.map((p) => (
             <option key={p.id} value={p.id}>
               {p.shortName} — {p.state}
             </option>
