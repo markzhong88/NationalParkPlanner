@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 import { BAKED_IN_LOOP, nearbyAddon, nearbyAddons } from "../data/nearbyParks";
 import { getPark, PARKS_BY_POPULARITY } from "../data/parks";
+import { trackSelectPark } from "../lib/analytics";
 import type { TripInput } from "../types";
 import { HomeSearch } from "./HomeSearch";
 
@@ -25,6 +26,7 @@ export function PlannerForm({ value, onChange, onSubmit, onDemo }: Props) {
   const setPark = (parkId: string) => {
     const nextAddon = nearbyAddon(parkId, value.alsoParkId);
     patch({ parkId, alsoParkId: nextAddon?.id });
+    if (parkId !== value.parkId) trackSelectPark(parkId);
   };
 
   const setAlsoPark = (alsoParkId: string) => {

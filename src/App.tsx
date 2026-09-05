@@ -6,6 +6,12 @@ import { TripPoster } from "./components/TripPoster";
 import { heuristicEstimate, requestFromPlan } from "./lib/estimateCost";
 import { defaultStartDate } from "./lib/format";
 import { generateTrip } from "./lib/generateTrip";
+import {
+  trackGenerateFailed,
+  trackGenerateTrip,
+  trackPlanAnother,
+  type GenerateSource,
+} from "./lib/analytics";
 import { clearTripUrl, tripFromSearch, writeTripUrl } from "./lib/tripUrl";
 import type { TripInput, TripPlan } from "./types";
 
@@ -35,6 +41,7 @@ export function App() {
   const bootstrapped = useRef(false);
 
   const goHome = () => {
+    trackPlanAnother();
     clearTripUrl();
     document.title = DEFAULT_TITLE;
     setInput((current) => ({ ...current, startDate: defaultStartDate() }));
@@ -46,7 +53,7 @@ export function App() {
     [input.parkId, input.alsoParkId],
   );
 
-  const run = async (next = input) => {
+  const run = async (next = input, source: GenerateSource = "form") => {
     setInput(next);
     setError(null);
     setStatus("generating");
@@ -57,9 +64,14 @@ export function App() {
       const wait = Math.max(0, 1400 - (Date.now() - started));
       await sleep(wait);
       writeTripUrl(next);
+      trackGenerateTrip(next, source, {
+        flying: result.flying,
+        parkName: result.parkName,
+      });
       setPlan(result);
       setStatus("ready");
     } catch {
+      trackGenerateFailed(next.parkId);
       await sleep(600);
       setError("Could not generate that trip. Check the home city and try again.");
       setStatus("form");
@@ -71,7 +83,7 @@ export function App() {
     const parsed = tripFromSearch();
     if (!parsed) return;
     bootstrapped.current = true;
-    void run(parsed);
+    void run(parsed, "shared_link");
   }, []);
 
   if (status === "generating") {
@@ -79,7 +91,7 @@ export function App() {
   }
 
   if (status === "ready" && plan) {
-    return <TripPoster plan={plan} onReset={goHome} />;
+    return <TripPoster plan={plan} trip={input} onReset={goHome} />;
   }
 
   return (
@@ -94,7 +106,7 @@ export function App() {
         onChange={setInput}
         onSubmit={() => void run()}
         onDemo={() => {
-          void run(DEMO);
+          void run(DEMO, "demo");
         }}
       />
     </>

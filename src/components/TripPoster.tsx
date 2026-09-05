@@ -17,13 +17,16 @@ import {
   waitFrames,
 } from "../lib/exportPoster";
 import { copyTripText } from "../lib/tripText";
+import { trackCopyTrip, trackDownload } from "../lib/analytics";
+import type { TripInput } from "../types";
 
 type Props = {
   plan: TripPlan;
+  trip: TripInput;
   onReset: () => void;
 };
 
-export function TripPoster({ plan, onReset }: Props) {
+export function TripPoster({ plan, trip, onReset }: Props) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [mapImage, setMapImage] = useState<string | null>(null);
   const [busy, setBusy] = useState<"png" | "pdf" | "text" | null>(null);
@@ -85,10 +88,12 @@ export function TripPoster({ plan, onReset }: Props) {
       const { sheet, mapImage: shot } = await prepareSheet();
       if (kind === "png") {
         downloadDataUrl(await captureNodePng(sheet, shot), posterFilename(plan, "png"));
+        trackDownload("png", trip, plan.parkName);
         return;
       }
       const jpeg = await captureNodeJpeg(sheet, shot);
       downloadBlob(await jpegDataUrlToPdf(jpeg), posterFilename(plan, "pdf"));
+      trackDownload("pdf", trip, plan.parkName);
     } catch (err) {
       setExportError(err instanceof Error ? err.message : "Couldn’t export the poster.");
     } finally {
@@ -103,6 +108,7 @@ export function TripPoster({ plan, onReset }: Props) {
     try {
       const result = await copyTripText(plan);
       setCopied(result);
+      trackCopyTrip(trip, plan.parkName, result);
       window.setTimeout(() => setCopied(false), 2200);
     } catch {
       setExportError("Couldn’t copy the itinerary. Try again, or download the PDF.");
