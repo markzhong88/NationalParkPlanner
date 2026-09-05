@@ -101,7 +101,6 @@ function PrintDayCard({
 }) {
   const limit = strip ? 4 : compact ? 3 : 4;
   const activities = day.activities.slice(0, limit);
-  const drive = day.driveHours >= 1 ? day.driveLabel : null;
 
   return (
     <article className="print-day" style={{ borderLeftColor: day.color }}>
@@ -109,10 +108,7 @@ function PrintDayCard({
         <span className="print-day-num" style={{ color: day.color }}>
           {String(day.day).padStart(2, "0")}
         </span>
-        <span className="print-day-date">
-          {formatDayHeading(day.date)}
-          {drive ? ` · ${drive}` : ""}
-        </span>
+        <span className="print-day-date">{printDayKicker(day)}</span>
       </div>
       <p className="print-day-title">{day.route ?? day.title}</p>
       <ul className="print-day-list">
@@ -125,6 +121,16 @@ function PrintDayCard({
       <p className="print-day-stay">{stayLine(day.stay)}</p>
     </article>
   );
+}
+
+function printDayKicker(day: DayPlan): string {
+  const date = formatDayHeading(day.date);
+  const drive = day.driveHours >= 1 ? day.driveLabel : "";
+  return oneLine(drive ? `${date} · ${drive}` : date);
+}
+
+function oneLine(value: string): string {
+  return value.replace(/ /g, "\u00a0");
 }
 
 function stayLine(stay: string): string {

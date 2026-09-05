@@ -69,9 +69,72 @@ export const CITIES: City[] = [
   { name: "Charleston", state: "WV", coord: { lng: -81.6326, lat: 38.3498 }, airport: "CRW", aliases: ["charleston wv", "charleston, wv"] },
 ];
 
+const CITY_BY_UNIQUE_AIRPORT = (() => {
+  const grouped = new Map<string, City[]>();
+  for (const city of CITIES) {
+    const code = city.airport.toLowerCase();
+    const list = grouped.get(code) ?? [];
+    list.push(city);
+    grouped.set(code, list);
+  }
+  const unique = new Map<string, City>();
+  for (const [code, list] of grouped) {
+    if (list.length === 1) unique.set(code, list[0]);
+  }
+  return unique;
+})();
+
 export function findCity(query: string): City | undefined {
   const matches = searchCities(query, 1);
   return matches[0];
+}
+
+/** Compact home for share URLs: unique airport (jfk) or `new-york-ny`. */
+export function homeUrlToken(home: string): string {
+  const known = findCity(home);
+  if (!known) return slugText(home).slice(0, 48) || "home";
+  const code = known.airport.toLowerCase();
+  if (CITY_BY_UNIQUE_AIRPORT.get(code) === known) return code;
+  return citySlug(known);
+}
+
+export function homeFromUrlToken(token: string): string {
+  const key = token.trim().toLowerCase();
+  if (!key) return "";
+  const byAirport = CITY_BY_UNIQUE_AIRPORT.get(key);
+  if (byAirport) return `${byAirport.name}, ${byAirport.state}`;
+  const bySlug = CITIES.find((city) => citySlug(city) === key);
+  if (bySlug) return `${bySlug.name}, ${bySlug.state}`;
+  const restored = unslugHome(key);
+  const known = findCity(restored);
+  if (known) return `${known.name}, ${known.state}`;
+  return restored;
+}
+
+function citySlug(city: City): string {
+  return `${slugText(city.name)}-${city.state.toLowerCase()}`;
+}
+
+function slugText(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function unslugHome(slug: string): string {
+  const match = slug.match(/^([a-z0-9-]+)-([a-z]{2})$/);
+  if (match) return `${titleWords(match[1])}, ${match[2].toUpperCase()}`;
+  return titleWords(slug);
+}
+
+function titleWords(slug: string): string {
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 export function searchCities(query: string, limit = 8): City[] {

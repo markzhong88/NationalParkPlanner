@@ -15,7 +15,7 @@ const DEMO: TripInput = {
   adults: 2,
   kids: 2,
   days: 7,
-  startDate: "2027-03-20",
+  startDate: defaultStartDate(),
 };
 
 const DEFAULT_TITLE = "Rimfold — National Park Trip Planner";
@@ -37,6 +37,7 @@ export function App() {
   const goHome = () => {
     clearTripUrl();
     document.title = DEFAULT_TITLE;
+    setInput((current) => ({ ...current, startDate: defaultStartDate() }));
     setStatus("form");
   };
 

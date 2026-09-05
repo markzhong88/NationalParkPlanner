@@ -40,9 +40,9 @@ export function toISODate(date: Date): string {
 
 export function defaultStartDate(): string {
   const d = new Date();
-  const day = d.getDay();
-  const daysUntilSat = (6 - day + 7) % 7 || 7;
-  d.setDate(d.getDate() + daysUntilSat);
+  d.setDate(d.getDate() + 14);
+  const daysUntilSat = (6 - d.getDay() + 7) % 7;
+  if (daysUntilSat) d.setDate(d.getDate() + daysUntilSat);
   return toISODate(d);
 }
 

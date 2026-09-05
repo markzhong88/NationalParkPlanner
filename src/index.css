@@ -524,11 +524,13 @@ button {
 
 .print-day-top {
   display: flex;
+  flex-wrap: nowrap;
   align-items: baseline;
   gap: 8px;
 }
 
 .print-day-num {
+  flex: 0 0 auto;
   font-family: Oswald, sans-serif;
   font-size: 18px;
   font-weight: 600;
@@ -537,11 +539,13 @@ button {
 }
 
 .print-day-date {
+  flex: 1 0 auto;
   font-family: "DM Sans", sans-serif;
   font-size: 11px;
   line-height: 14px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   text-transform: uppercase;
+  white-space: nowrap;
   color: rgba(26, 35, 50, 0.52);
 }
 
