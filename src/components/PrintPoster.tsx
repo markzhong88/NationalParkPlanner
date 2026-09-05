@@ -2,6 +2,7 @@ import type { RefObject } from "react";
 import type { DayPlan, TripPlan } from "../types";
 import { formatDayHeading } from "../lib/format";
 import { exportMapAspect } from "../lib/geo";
+import { POSTER_H, POSTER_W } from "../lib/exportPoster";
 
 export function PrintPoster({
   plan,
@@ -14,7 +15,9 @@ export function PrintPoster({
 }) {
   const compact = plan.days.length > 6;
   const columns = plan.days.length > 8 ? 3 : 2;
+  const rows = Math.ceil(plan.days.length / columns);
   const mapAspect = exportMapAspect(plan.bounds);
+  const mapHeight = posterMapHeight(mapAspect, rows, compact);
 
   return (
     <div ref={sheetRef} className="print-poster paper-grid" aria-hidden="true">
@@ -35,7 +38,11 @@ export function PrintPoster({
         </div>
       </header>
 
-      <div data-print-map-slot className="print-map" style={{ aspectRatio: String(mapAspect) }}>
+      <div
+        data-print-map-slot
+        className="print-map"
+        style={{ height: mapHeight, aspectRatio: "auto" }}
+      >
         {mapImage ? (
           <img data-print-map="true" src={mapImage} alt="" />
         ) : (
@@ -57,9 +64,26 @@ function PrintDayCard({ day, compact }: { day: DayPlan; compact: boolean }) {
 
   return (
     <article className="print-day">
-      <div className="print-day-top">
-        <span className="print-day-badge" style={{ background: day.color }}>
-          DAY {day.day}
+      <div className="print-day-top" style={{ padding: "10px 10px 0" }}>
+        <span
+          className="print-day-badge"
+          style={{
+            background: day.color,
+            display: "inline-block",
+            whiteSpace: "nowrap",
+            minWidth: 64,
+            height: 26,
+            boxSizing: "border-box",
+            lineHeight: "26px",
+            padding: "0 10px",
+            fontSize: "12px",
+            fontWeight: 600,
+            letterSpacing: "0.04em",
+            color: "#fff",
+            textAlign: "center",
+          }}
+        >
+          DAY&nbsp;{day.day}
         </span>
         <span className="print-day-date">{formatDayHeading(day.date)}</span>
       </div>
@@ -71,7 +95,23 @@ function PrintDayCard({ day, compact }: { day: DayPlan; compact: boolean }) {
           </li>
         ))}
       </ul>
-      <p className="print-day-stay" style={{ background: day.color }}>
+      <p
+        className="print-day-stay"
+        style={{
+          background: day.color,
+          display: "block",
+          height: 36,
+          lineHeight: "36px",
+          padding: "0 12px",
+          margin: 0,
+          borderRadius: "0 0 8px 8px",
+          fontSize: "12px",
+          fontWeight: 500,
+          color: "#fff",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+        }}
+      >
         {day.stay}
       </p>
     </article>
@@ -80,4 +120,14 @@ function PrintDayCard({ day, compact }: { day: DayPlan; compact: boolean }) {
 
 function prettyTitle(value: string): string {
   return value.toLowerCase().replace(/\b([a-z])/g, (ch) => ch.toUpperCase());
+}
+
+function posterMapHeight(aspect: number, rows: number, compact: boolean) {
+  const innerW = POSTER_W - 56;
+  const natural = innerW / Math.max(0.5, aspect);
+  const cardH = compact ? 200 : 218;
+  const daysH = rows * cardH + Math.max(0, rows - 1) * 8;
+  const reserved = 48 + 64 + 14 + 12;
+  const maxH = POSTER_H - reserved - daysH;
+  return Math.round(Math.max(280, Math.min(natural, maxH)));
 }

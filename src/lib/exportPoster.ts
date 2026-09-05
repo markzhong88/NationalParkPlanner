@@ -45,8 +45,8 @@ export async function waitForImage(img: HTMLImageElement) {
   });
 }
 
-const POSTER_W = 1056;
-const POSTER_H = 1632;
+export const POSTER_W = 1056;
+export const POSTER_H = 1632;
 const POSTER_RATIO = 2;
 
 const POSTER_STYLE: Partial<CSSStyleDeclaration> = {
@@ -60,9 +60,10 @@ const POSTER_STYLE: Partial<CSSStyleDeclaration> = {
 
 export async function captureNodePng(node: HTMLElement, mapImage?: string) {
   await document.fonts.ready;
+  const { width, height } = posterCaptureSize(node);
   const poster = await toPng(node, {
-    width: POSTER_W,
-    height: POSTER_H,
+    width,
+    height,
     pixelRatio: POSTER_RATIO,
     cacheBust: true,
     skipFonts: false,
@@ -76,9 +77,10 @@ export async function captureNodePng(node: HTMLElement, mapImage?: string) {
 
 export async function captureNodeJpeg(node: HTMLElement, mapImage?: string) {
   await document.fonts.ready;
+  const { width, height } = posterCaptureSize(node);
   const poster = await toJpeg(node, {
-    width: POSTER_W,
-    height: POSTER_H,
+    width,
+    height,
     quality: 0.95,
     pixelRatio: POSTER_RATIO,
     cacheBust: true,
@@ -89,6 +91,13 @@ export async function captureNodeJpeg(node: HTMLElement, mapImage?: string) {
   });
   if (!mapImage) return poster;
   return pasteMapOntoPoster(poster, mapImage, node, "jpeg");
+}
+
+function posterCaptureSize(node: HTMLElement) {
+  return {
+    width: POSTER_W,
+    height: Math.max(POSTER_H, Math.ceil(node.scrollHeight)),
+  };
 }
 
 function skipPrintMapImage(domNode: HTMLElement) {

@@ -798,6 +798,13 @@ function roundRectPath(
 function wrapLabel(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
   if (ctx.measureText(text).width <= maxWidth) return [text];
   const words = text.split(/\s+/);
+  if (words.length >= 2) {
+    const last = words[words.length - 1];
+    const head = words.slice(0, -1).join(" ");
+    if (ctx.measureText(head).width <= maxWidth && ctx.measureText(last).width <= maxWidth) {
+      return [head, last];
+    }
+  }
   const first: string[] = [];
   let rest = "";
   for (const word of words) {
