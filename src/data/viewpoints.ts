@@ -30,11 +30,6 @@ export const EXTRA_VIEWPOINTS: Record<string, Landmark[]> = {
     p("glacier-point", "Glacier Point", -119.574, 37.73),
     p("bridalveil", "Bridalveil Fall", -119.6465, 37.7169),
   ],
-  glacier: [
-    p("hidden-lake", "Hidden Lake Overlook", -113.729, 48.68),
-    p("st-mary", "St. Mary Lake", -113.43, 48.7),
-    p("avalanche", "Avalanche Creek", -113.819, 48.678),
-  ],
   acadia: [
     p("sand-beach", "Sand Beach", -68.186, 44.329),
     p("thunder-hole", "Thunder Hole", -68.188, 44.321),
@@ -165,8 +160,9 @@ export const VIEWPOINT_SEARCH: Record<string, string> = {
   "glacier-point": "Glacier Point Yosemite",
   bridalveil: "Bridalveil Fall Yosemite",
   "hidden-lake": "Hidden Lake Overlook Glacier",
-  "st-mary": "St Mary Lake Glacier National Park",
-  avalanche: "Avalanche Creek Glacier National Park",
+  "wild-goose": "Wild Goose Island St Mary Lake Glacier",
+  avalanche: "Trail of the Cedars Avalanche Creek Glacier",
+  "two-medicine": "Two Medicine Lake Glacier National Park",
   "sand-beach": "Sand Beach Acadia",
   "thunder-hole": "Thunder Hole Acadia",
   "otter-cliff": "Otter Cliff Acadia",

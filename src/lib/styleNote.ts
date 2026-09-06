@@ -99,7 +99,7 @@ const FAMILY_PACE: Record<string, string> = {
   yellowstone:
     "Boardwalks, wildlife pulloffs, and short drives between basins — not a death-march hike.",
   yosemite: "Valley views from the car and short paved walks; save Half Dome for another trip.",
-  glacier: "Lakeside time on the west side, and Many Glacier if Going-to-the-Sun is open.",
+  glacier: "Lake McDonald and Trail of the Cedars, then over Logan Pass to Many Glacier — not a dawn-to-dusk hike.",
   acadia: "Carriage roads, a shoreline ramble, and lobster in town before bed.",
   "rocky-mountain":
     "Bear Lake and the valley floor first; Trail Ridge only if everyone is feeling the altitude.",
@@ -131,7 +131,7 @@ const ADULT_PACE: Record<string, string> = {
   zion: "Canyon walls at first light, then a stretch to Bryce if the days allow.",
   yellowstone: "Geysers and wildlife valleys at a sane pace, with Grand Teton if you have the extra night.",
   yosemite: "Valley granite, a waterfall walk, and one slower day if the crowds spike.",
-  glacier: "Going-to-the-Sun when the snow has melted, with a second base on the east side if you have the days.",
+  glacier: "Going-to-the-Sun when the snow has melted, with Many Glacier as the east-side night.",
   acadia: "Cadillac at sunrise, the Park Loop, and a quiet evening in Bar Harbor.",
   "rocky-mountain": "Alpine tundra and elk meadows, with Estes Park as the easy base.",
   "great-smoky": "Newfound Gap, Cades Cove, and a slower afternoon on the North Carolina side.",

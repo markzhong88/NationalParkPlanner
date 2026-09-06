@@ -377,6 +377,9 @@ function arrivalActivities(args: {
     items.push("Walk Town Square and the elk-antler arches");
     items.push(args.family ? "Early dinner in town — skip anything strenuous" : "Early dinner downtown");
     items.push("If you land early, drive 20–30 minutes north for first Teton views");
+  } else if (args.park.gateway.city === "Kalispell") {
+    items.push(args.family ? "Easy dinner in West Glacier — skip the pass today" : "Easy dinner in West Glacier");
+    items.push("If you land early, walk the Apgar lakeshore for first lake views");
   } else if (args.family) {
     items.push("Pool time and an easy dinner nearby");
   } else {
@@ -434,6 +437,13 @@ function gatewayReturnActivities(park: ParkProfile, family: boolean): string[] {
       "Drive back to Las Vegas",
       "Return-the-car buffer at the Strip or downtown",
       family ? "Easy dinner and an early night before the flight" : "Evening on the Strip if energy remains",
+    ];
+  }
+  if (park.gateway.city === "Kalispell") {
+    return [
+      "Drive back to Kalispell (~2.5 hrs from Many Glacier — Going-to-the-Sun westbound if it's open)",
+      "Airport hotel near FCA",
+      family ? "Easy dinner and an early night before the flight" : "A good dinner in Kalispell",
     ];
   }
   return [
@@ -551,6 +561,7 @@ function daysForLandmark(lm: { name: string; coord: Coordinates }, days: DayPlan
     "mountain",
     "snake",
     "overlook",
+    "glacier",
   ]);
   const tokens = name.split(/[^a-z0-9]+/).filter((word) => word.length > 4 && !skip.has(word));
   const hits = days.filter((d) => {

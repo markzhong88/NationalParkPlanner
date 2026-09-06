@@ -590,16 +590,16 @@ function plotter(
 function exportOverlayMetrics(canvas: HTMLCanvasElement) {
   const w = canvas.width;
   const cardW = Math.round(w * 0.2);
-  const photoH = Math.round(cardW * 0.6);
-  const captionH = Math.round(cardW * 0.3);
-  const font = Math.round(cardW * 0.128);
+  const cardH = Math.round(cardW * 0.8);
+  const captionH = Math.round(cardW * 0.12);
+  const font = Math.round(cardW * 0.1);
   return {
     cardW,
-    photoH,
+    photoH: cardH,
     captionH,
-    cardH: photoH + captionH,
+    cardH,
     font,
-    lineH: Math.round(font * 1.18),
+    lineH: Math.round(font * 1.15),
     pad: Math.round(w * 0.032),
     radius: Math.round(cardW * 0.05),
     pinR: Math.round(cardW * 0.032),
@@ -712,36 +712,42 @@ async function drawLandmarkPhotos(
     ctx.stroke();
 
     ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(cardX, cardY, m.cardW, m.photoH, [m.radius, m.radius, 0, 0]);
+    roundRectPath(ctx, cardX, cardY, m.cardW, m.cardH, m.radius);
     ctx.clip();
     const ir = img.naturalWidth / Math.max(1, img.naturalHeight);
-    const cr = m.cardW / m.photoH;
+    const cr = m.cardW / m.cardH;
     let dw = m.cardW;
-    let dh = m.photoH;
+    let dh = m.cardH;
     let dx = cardX;
     let dy = cardY;
     if (ir > cr) {
-      dw = m.photoH * ir;
+      dw = m.cardH * ir;
       dx = cardX + (m.cardW - dw) / 2;
     } else {
       dh = m.cardW / ir;
-      dy = cardY + (m.photoH - dh) / 2;
+      dy = cardY + (m.cardH - dh) / 2;
     }
     ctx.drawImage(img, dx, dy, dw, dh);
-    ctx.restore();
 
-    ctx.font = `700 ${m.font}px "DM Sans", sans-serif`;
+    const fadeTop = cardY + m.cardH - m.captionH * 1.15;
+    const fade = ctx.createLinearGradient(0, fadeTop, 0, cardY + m.cardH);
+    fade.addColorStop(0, "rgba(255,253,248,0)");
+    fade.addColorStop(0.55, "rgba(255,253,248,0.45)");
+    fade.addColorStop(1, "rgba(255,253,248,0.92)");
+    ctx.fillStyle = fade;
+    ctx.fillRect(cardX, fadeTop, m.cardW, m.cardH - (fadeTop - cardY));
+
+    ctx.font = `600 ${m.font}px "DM Sans", sans-serif`;
     ctx.fillStyle = "#1a2332";
     ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
+    ctx.textBaseline = "alphabetic";
     const inset = Math.round(m.cardW * 0.07);
     const lines = wrapLabel(ctx, lm.name, m.cardW - inset * 2);
-    const blockH = m.lineH * lines.length;
-    const textY = cardY + m.photoH + (m.captionH - blockH) / 2 + m.lineH / 2;
+    const textY = cardY + m.cardH - Math.round(m.cardW * 0.055);
     lines.forEach((line, i) => {
-      ctx.fillText(line, cardX + inset, textY + i * m.lineH);
+      ctx.fillText(line, cardX + inset, textY - (lines.length - 1 - i) * m.lineH);
     });
+    ctx.restore();
   }
 }
 
@@ -773,9 +779,9 @@ type CalloutLayoutOpt = {
 };
 
 const LIVE_CARD_W = 148;
-const LIVE_CARD_H = 124;
+const LIVE_CARD_H = 118;
 const LIVE_ANCHOR_X = 74;
-const LIVE_ANCHOR_Y = 54;
+const LIVE_ANCHOR_Y = 59;
 const COMPACT_MAP_MAX_PX = 1023;
 const COMPACT_PHOTO_LIMIT = 3;
 
@@ -801,7 +807,7 @@ function selectionMapPadding(compact: boolean) {
 
 function liveCalloutMetrics(compact: boolean) {
   if (compact) {
-    return { cardW: 78, cardH: 70, anchorX: 39, anchorY: 30, minLeader: 64, gap: 10, pad: 36 };
+    return { cardW: 78, cardH: 64, anchorX: 39, anchorY: 32, minLeader: 64, gap: 10, pad: 36 };
   }
   return {
     cardW: LIVE_CARD_W,
