@@ -232,9 +232,20 @@ function layout(opts: {
   <meta property="og:title" content="${esc(opts.title)}" />
   <meta property="og:description" content="${esc(opts.description)}" />
   <meta property="og:url" content="${esc(canonical)}" />
-  <meta property="og:image" content="https://rimfold.com/photos/hero-canyon.jpg" />
+  <meta property="og:site_name" content="Rimfold" />
+  <meta property="og:image" content="https://rimfold.com/og.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Rimfold national park trip planner. Tell us the park. We'll draw the trip." />
   <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${esc(opts.title)}" />
+  <meta name="twitter:description" content="${esc(opts.description)}" />
+  <meta name="twitter:image" content="https://rimfold.com/og.jpg" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta name="theme-color" content="#1F3A2E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="${FONTS}" rel="stylesheet" />
@@ -243,7 +254,7 @@ function layout(opts: {
 </head>
 <body>
   <header class="top">
-    <a class="brand" href="/">RIMFOLD</a>
+    <a class="brand" href="/"><img src="/favicon.svg" width="22" height="22" alt="">RIMFOLD</a>
     <a class="top-link" href="/trips/">Classic trips</a>
   </header>
   <main>${opts.body}</main>
@@ -263,7 +274,8 @@ function pageCss(): string {
     body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.5 "DM Sans", system-ui, sans-serif; }
     a { color:var(--pine); }
     .top { display:flex; justify-content:space-between; align-items:center; max-width:920px; margin:0 auto; padding:22px 24px 0; }
-    .brand { font-family:Oswald,sans-serif; letter-spacing:.32em; font-size:13px; text-decoration:none; color:var(--gold); }
+    .brand { display:flex; align-items:center; gap:8px; font-family:Oswald,sans-serif; letter-spacing:.32em; font-size:13px; text-decoration:none; color:var(--gold); }
+    .brand img { width:22px; height:22px; }
     .top-link { font-size:13px; color:var(--pine); }
     main { max-width:920px; margin:0 auto; padding:28px 24px 64px; }
     .kicker, .card-kicker, .crumbs { font-family:Oswald,sans-serif; letter-spacing:.18em; text-transform:uppercase; font-size:12px; color:var(--gold); }

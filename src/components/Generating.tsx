@@ -1,3 +1,5 @@
+import { BrandMark } from "./BrandMark";
+
 const STEPS = [
   "Reading the landscape",
   "Choosing a sane daily pace",
@@ -11,9 +13,10 @@ export function Generating({ parkName, onHome }: { parkName: string; onHome?: ()
       <button
         type="button"
         onClick={onHome}
-        className="font-display text-sm tracking-[0.28em] text-gold transition hover:text-pine"
+        className="flex items-center gap-2.5 font-display text-sm tracking-[0.28em] text-gold transition hover:text-pine"
         aria-label="Rimfold home"
       >
+        <BrandMark />
         RIMFOLD
       </button>
       <h1 className="mt-4 max-w-lg text-center font-display text-4xl uppercase leading-none tracking-wide text-pine sm:text-5xl">

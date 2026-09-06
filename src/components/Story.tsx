@@ -1,10 +1,14 @@
 import { publicUrl } from "../lib/assets";
+import { BrandMark } from "./BrandMark";
 
 export function Story({ onBack }: { onBack: () => void }) {
   return (
     <div className="paper-grid min-h-screen">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-5 pt-6 lg:px-8">
-        <p className="font-display text-sm tracking-[0.32em] text-gold">RIMFOLD</p>
+        <p className="flex items-center gap-2.5 font-display text-sm tracking-[0.32em] text-gold">
+          <BrandMark />
+          RIMFOLD
+        </p>
         <button
           type="button"
           onClick={onBack}

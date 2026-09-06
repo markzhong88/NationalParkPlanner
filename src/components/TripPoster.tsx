@@ -3,6 +3,7 @@ import { flushSync } from "react-dom";
 import type { TripPlan } from "../types";
 import { DayCard } from "./DayCard";
 import { ArtisticMap, type ArtisticMapHandle } from "./ArtisticMap";
+import { BrandMark } from "./BrandMark";
 import { CostCard } from "./CostCard";
 import { FeedbackLink } from "./FeedbackLink";
 import { PrintPoster } from "./PrintPoster";
@@ -192,9 +193,10 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
             <button
               type="button"
               onClick={onReset}
-              className="font-display text-[11px] tracking-[0.32em] text-gold transition hover:text-pine"
+              className="flex items-center gap-2 font-display text-[11px] tracking-[0.32em] text-gold transition hover:text-pine"
               aria-label="Rimfold home"
             >
+              <BrandMark className="h-5 w-5" />
               RIMFOLD
             </button>
             <div className="flex flex-wrap items-center gap-2">

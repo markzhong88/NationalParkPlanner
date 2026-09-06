@@ -1,5 +1,6 @@
 import { resolvePark } from "../data/nearbyParks";
 import { publicUrl } from "../lib/assets";
+import { BrandMark } from "./BrandMark";
 import { FeedbackLink } from "./FeedbackLink";
 import { PlannerForm } from "./PlannerForm";
 import type { TripInput } from "../types";
@@ -25,7 +26,10 @@ export function Landing({ value, onChange, onSubmit, onDemo }: Props) {
       <div className="absolute inset-0 bg-gradient-to-t from-ink/75 via-transparent to-ink/35" />
 
       <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 pt-6 lg:px-8">
-        <p className="font-display text-sm tracking-[0.32em] text-gold">RIMFOLD</p>
+        <p className="flex items-center gap-2.5 font-display text-sm tracking-[0.32em] text-gold">
+          <BrandMark />
+          RIMFOLD
+        </p>
         <div className="flex items-center gap-4">
           <a
             href="/trips/"
