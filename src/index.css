@@ -417,17 +417,35 @@ button {
 
 .print-title {
   margin: 0;
-  max-width: 920px;
+  max-width: 100%;
   font-family: Fraunces, Georgia, serif;
   font-size: 44px;
   font-weight: 600;
-  line-height: 48px;
+  line-height: 50px;
   letter-spacing: -0.02em;
   color: #1f3a2e;
 }
 
+.print-title-line {
+  display: block;
+  line-height: 50px;
+}
+
+.print-title.is-stacked {
+  font-size: 38px;
+  padding-bottom: 10px;
+}
+
+.print-title.is-stacked .print-title-line {
+  line-height: 48px;
+}
+
+.print-title.is-stacked .print-title-line + .print-title-line {
+  margin-top: 18px;
+}
+
 .print-dest {
-  margin: 8px 0 0;
+  margin: 14px 0 0;
   font-family: Oswald, sans-serif;
   font-size: 14px;
   font-weight: 500;

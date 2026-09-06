@@ -19,10 +19,11 @@ export function PrintPoster({
   const compact = dayCount > 6;
   const strip = dayCount <= 5;
   const mapAspect = exportMapAspect(plan.bounds);
-  const mapHeight = posterMapHeight(mapAspect, dayCount, columns);
   const destinations = destinationLine(plan);
   const quote = firstSentence(plan.styleNote);
   const how = plan.flying ? `Flying via ${plan.gateway}` : `From ${plan.homeLabel}`;
+  const titleLines = posterTitleLines(prettyTitle(plan.title));
+  const mapHeight = posterMapHeight(mapAspect, dayCount, columns, titleLines.length);
 
   return (
     <div ref={sheetRef} className="print-poster paper-grid" aria-hidden="true">
@@ -34,7 +35,13 @@ export function PrintPoster({
       </div>
 
       <header className="print-head">
-        <h1 className="print-title">{prettyTitle(plan.title)}</h1>
+        <h1 className={`print-title${titleLines.length > 1 ? " is-stacked" : ""}`}>
+          {titleLines.map((line) => (
+            <span key={line} className="print-title-line">
+              {line}
+            </span>
+          ))}
+        </h1>
         {destinations ? <p className="print-dest">{destinations}</p> : null}
         <p className="print-meta">
           <span>{plan.dateRange}</span>
@@ -157,16 +164,27 @@ function firstSentence(value: string): string {
   return sentence.length > 220 ? `${sentence.slice(0, 210).trim()}…` : sentence;
 }
 
+function posterTitleLines(pretty: string): string[] {
+  for (const suffix of ["Family Road Trip", "Weekend Road Trip", "Road Trip"]) {
+    const tail = ` ${suffix}`;
+    if (!pretty.endsWith(tail)) continue;
+    const head = pretty.slice(0, -tail.length);
+    const long = pretty.length > 32 || pretty.includes("&");
+    return long ? [head, suffix] : [pretty];
+  }
+  return [pretty];
+}
+
 function prettyTitle(value: string): string {
   return value.toLowerCase().replace(/\b([a-z])/g, (ch) => ch.toUpperCase());
 }
 
-function posterMapHeight(aspect: number, dayCount: number, columns: number) {
+function posterMapHeight(aspect: number, dayCount: number, columns: number, titleLines = 1) {
   const innerW = POSTER_W - 56;
   const natural = innerW / Math.max(0.5, aspect);
   const rows = Math.ceil(dayCount / columns);
   const rowH = dayCount <= 5 ? 188 : dayCount > 8 ? 172 : 144;
-  const header = 200;
+  const header = 200 + Math.max(0, titleLines - 1) * 84;
   const footer = 46;
   const daysBlock = 24 + rows * rowH + Math.max(0, rows - 1) * 10;
   const maxH = POSTER_H - 36 - header - footer - daysBlock;
