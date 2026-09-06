@@ -46,7 +46,9 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
   const [feedback, setFeedback] = useState<FeedbackSource | null>(null);
   const skipScroll = useRef(true);
   const feedbackTimer = useRef<number>(0);
+  const idleArmed = useRef(false);
   const openedForced = useRef(false);
+  const offerFeedbackRef = useRef<(source: FeedbackSource) => void>(() => undefined);
   const saveRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<ArtisticMapHandle>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -85,8 +87,21 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
   }, [feedback, forceFeedback]);
 
   useEffect(() => {
-    return () => window.clearTimeout(feedbackTimer.current);
-  }, []);
+    const onScroll = () => {
+      if (idleArmed.current) return;
+      if (forceFeedback || feedbackForced() || !canOfferFeedback()) return;
+      idleArmed.current = true;
+      window.clearTimeout(feedbackTimer.current);
+      feedbackTimer.current = window.setTimeout(() => offerFeedbackRef.current("idle"), 20000);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    document.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("scroll", onScroll, true);
+      window.clearTimeout(feedbackTimer.current);
+    };
+  }, [forceFeedback]);
 
   useEffect(() => {
     if (!saveOpen) return;
@@ -111,23 +126,18 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
 
   const offerFeedback = (source: FeedbackSource) => {
     if (feedback || !canOfferFeedback()) return;
+    idleArmed.current = true;
     clearFeedbackTimer();
     markFeedbackOffered();
     setFeedback(source);
   };
-
-  const scheduleIdleFeedback = () => {
-    if (feedback || forceFeedback || feedbackForced() || !canOfferFeedback()) return;
-    clearFeedbackTimer();
-    feedbackTimer.current = window.setTimeout(() => offerFeedback("idle"), 20000);
-  };
+  offerFeedbackRef.current = offerFeedback;
 
   const pickDay = (day: number) => {
     setSelectedDay((current) => (current === day ? null : day));
     if (window.matchMedia("(max-width: 1023px)").matches) {
       document.querySelector(".map-canvas")?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-    scheduleIdleFeedback();
   };
 
   const prepareSheet = async () => {
