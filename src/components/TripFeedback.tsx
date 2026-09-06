@@ -125,11 +125,11 @@ export function TripFeedback({
 
           <button
             type="button"
-            disabled={!rating || status === "sending"}
+            disabled={!rating}
             onClick={() => void submit()}
             className="mt-3 rounded-full bg-pine px-4 py-2 text-[13px] font-medium text-[#f4efe4] transition hover:bg-pine/90 disabled:opacity-40"
           >
-            {status === "sending" ? "Sending…" : "Submit"}
+            Submit
           </button>
         </>
       )}
