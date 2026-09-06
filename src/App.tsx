@@ -12,6 +12,7 @@ import {
   trackPlanAnother,
   type GenerateSource,
 } from "./lib/analytics";
+import { noteTripGenerated, resetFeedbackPrompt } from "./lib/tripFeedback";
 import { clearTripUrl, tripFromSearch, writeTripUrl } from "./lib/tripUrl";
 import type { TripInput, TripPlan } from "./types";
 
@@ -38,6 +39,8 @@ export function App() {
   const [status, setStatus] = useState<"form" | "generating" | "ready">("form");
   const [plan, setPlan] = useState<TripPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [returning, setReturning] = useState(false);
+  const [forceFeedback, setForceFeedback] = useState(false);
   const bootstrapped = useRef(false);
 
   const goHome = () => {
@@ -63,11 +66,15 @@ export function App() {
       result.cost = heuristicEstimate(requestFromPlan(result, next));
       const wait = Math.max(0, 1400 - (Date.now() - started));
       await sleep(wait);
+      const showFeedback = new URLSearchParams(window.location.search).get("feedback") === "1";
+      if (showFeedback) resetFeedbackPrompt();
+      setForceFeedback(showFeedback);
       writeTripUrl(next);
       trackGenerateTrip(next, source, {
         flying: result.flying,
         parkName: result.parkName,
       });
+      setReturning(noteTripGenerated());
       setPlan(result);
       setStatus("ready");
     } catch {
@@ -91,7 +98,15 @@ export function App() {
   }
 
   if (status === "ready" && plan) {
-    return <TripPoster plan={plan} trip={input} onReset={goHome} />;
+    return (
+      <TripPoster
+        plan={plan}
+        trip={input}
+        returning={returning}
+        forceFeedback={forceFeedback}
+        onReset={goHome}
+      />
+    );
   }
 
   return (

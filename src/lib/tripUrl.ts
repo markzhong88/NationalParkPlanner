@@ -18,9 +18,11 @@ export function tripShareUrl(input: TripInput, loc = window.location): string {
 }
 
 export function writeTripUrl(input: TripInput) {
-  const next = tripShareUrl(input);
-  const url = new URL(next);
-  const target = `${url.pathname}${url.search}`;
+  const next = new URL(tripShareUrl(input));
+  if (new URLSearchParams(window.location.search).get("feedback") === "1") {
+    next.searchParams.set("feedback", "1");
+  }
+  const target = `${next.pathname}${next.search}`;
   const current = `${window.location.pathname}${window.location.search}`;
   if (current === target) return;
   window.history.replaceState(null, "", target);

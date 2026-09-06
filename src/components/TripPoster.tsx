@@ -6,6 +6,7 @@ import { ArtisticMap, type ArtisticMapHandle } from "./ArtisticMap";
 import { CostCard } from "./CostCard";
 import { FeedbackLink } from "./FeedbackLink";
 import { PrintPoster } from "./PrintPoster";
+import { TripFeedback } from "./TripFeedback";
 import {
   captureNodeJpeg,
   captureNodePng,
@@ -18,21 +19,34 @@ import {
 } from "../lib/exportPoster";
 import { copyTripText } from "../lib/tripText";
 import { trackCopyTrip, trackDownload } from "../lib/analytics";
+import {
+  canOfferFeedback,
+  feedbackForced,
+  markFeedbackOffered,
+  type FeedbackSource,
+} from "../lib/tripFeedback";
 import type { TripInput } from "../types";
 
 type Props = {
   plan: TripPlan;
   trip: TripInput;
+  returning: boolean;
+  forceFeedback?: boolean;
   onReset: () => void;
 };
 
-export function TripPoster({ plan, trip, onReset }: Props) {
+export function TripPoster({ plan, trip, returning, forceFeedback = false, onReset }: Props) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [mapImage, setMapImage] = useState<string | null>(null);
   const [busy, setBusy] = useState<"png" | "pdf" | "text" | null>(null);
   const [copied, setCopied] = useState<"copied" | "downloaded" | false>(false);
+  const [saveOpen, setSaveOpen] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackSource | null>(null);
   const skipScroll = useRef(true);
+  const feedbackTimer = useRef<number>(0);
+  const openedForced = useRef(false);
+  const saveRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<ArtisticMapHandle>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
@@ -60,11 +74,59 @@ export function TripPoster({ plan, trip, onReset }: Props) {
     };
   }, [plan.title]);
 
+  useEffect(() => {
+    if (forceFeedback || feedbackForced()) {
+      if (!openedForced.current && !feedback) {
+        openedForced.current = true;
+        setFeedback("idle");
+      }
+    }
+  }, [feedback, forceFeedback]);
+
+  useEffect(() => {
+    return () => window.clearTimeout(feedbackTimer.current);
+  }, []);
+
+  useEffect(() => {
+    if (!saveOpen) return;
+    const onPointer = (event: PointerEvent) => {
+      if (!saveRef.current?.contains(event.target as Node)) setSaveOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSaveOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [saveOpen]);
+
+  const clearFeedbackTimer = () => {
+    window.clearTimeout(feedbackTimer.current);
+    feedbackTimer.current = 0;
+  };
+
+  const offerFeedback = (source: FeedbackSource) => {
+    if (feedback || !canOfferFeedback()) return;
+    clearFeedbackTimer();
+    markFeedbackOffered();
+    setFeedback(source);
+  };
+
+  const scheduleIdleFeedback = () => {
+    if (feedback || forceFeedback || feedbackForced() || !canOfferFeedback()) return;
+    clearFeedbackTimer();
+    feedbackTimer.current = window.setTimeout(() => offerFeedback("idle"), 20000);
+  };
+
   const pickDay = (day: number) => {
     setSelectedDay((current) => (current === day ? null : day));
     if (window.matchMedia("(max-width: 1023px)").matches) {
       document.querySelector(".map-canvas")?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
+    scheduleIdleFeedback();
   };
 
   const prepareSheet = async () => {
@@ -84,16 +146,19 @@ export function TripPoster({ plan, trip, onReset }: Props) {
     if (busy) return;
     setBusy(kind);
     setExportError(null);
+    clearFeedbackTimer();
     try {
       const { sheet, mapImage: shot } = await prepareSheet();
       if (kind === "png") {
         downloadDataUrl(await captureNodePng(sheet, shot), posterFilename(plan, "png"));
         trackDownload("png", trip, plan.parkName);
+        offerFeedback("save");
         return;
       }
       const jpeg = await captureNodeJpeg(sheet, shot);
       downloadBlob(await jpegDataUrlToPdf(jpeg), posterFilename(plan, "pdf"));
       trackDownload("pdf", trip, plan.parkName);
+      offerFeedback("save");
     } catch (err) {
       setExportError(err instanceof Error ? err.message : "Couldn’t export the poster.");
     } finally {
@@ -105,10 +170,12 @@ export function TripPoster({ plan, trip, onReset }: Props) {
     if (busy) return;
     setBusy("text");
     setExportError(null);
+    clearFeedbackTimer();
     try {
       const result = await copyTripText(plan);
       setCopied(result);
       trackCopyTrip(trip, plan.parkName, result);
+      offerFeedback("save");
       window.setTimeout(() => setCopied(false), 2200);
     } catch {
       setExportError("Couldn’t copy the itinerary. Try again, or download the PDF.");
@@ -131,30 +198,56 @@ export function TripPoster({ plan, trip, onReset }: Props) {
               RIMFOLD
             </button>
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                disabled={busy != null}
-                onClick={() => void exportPoster("png")}
-                className="rounded-full bg-pine px-3 py-1.5 text-[12px] font-medium text-[#f4efe4] transition hover:bg-pine/90 disabled:opacity-50"
-              >
-                {busy === "png" ? "Preparing…" : "Download image"}
-              </button>
-              <button
-                type="button"
-                disabled={busy != null}
-                onClick={() => void exportPoster("pdf")}
-                className="rounded-full px-3 py-1.5 text-[12px] font-medium text-pine ring-1 ring-pine/20 transition hover:bg-white/60 disabled:opacity-50"
-              >
-                {busy === "pdf" ? "Preparing…" : "Download PDF"}
-              </button>
-              <button
-                type="button"
-                disabled={busy != null}
-                onClick={() => void copyText()}
-                className="rounded-full px-3 py-1.5 text-[12px] font-medium text-pine ring-1 ring-pine/20 transition hover:bg-white/60 disabled:opacity-50"
-              >
-                {copied === "copied" ? "Copied" : copied === "downloaded" ? "Saved .txt" : "Copy trip"}
-              </button>
+              <div className="relative" ref={saveRef}>
+                <button
+                  type="button"
+                  disabled={busy != null}
+                  aria-haspopup="menu"
+                  aria-expanded={saveOpen}
+                  onClick={() => setSaveOpen((open) => !open)}
+                  className="rounded-full bg-pine px-3 py-1.5 text-[12px] font-medium text-[#f4efe4] transition hover:bg-pine/90 disabled:opacity-50"
+                >
+                  {busy
+                    ? "Saving…"
+                    : copied === "copied"
+                      ? "Copied"
+                      : copied === "downloaded"
+                        ? "Saved"
+                        : "Save trip"}
+                </button>
+                {saveOpen && busy == null ? (
+                  <div
+                    role="menu"
+                    aria-label="Save trip"
+                    className="absolute right-0 z-20 mt-1.5 w-[11.5rem] rounded-xl bg-[#f4efe4] p-1 shadow-[0_12px_32px_rgba(26,35,50,0.18)] ring-1 ring-pine/12"
+                  >
+                    <SaveChoice
+                      label="Poster image"
+                      hint="share or print later"
+                      onClick={() => {
+                        setSaveOpen(false);
+                        void exportPoster("png");
+                      }}
+                    />
+                    <SaveChoice
+                      label="PDF"
+                      hint="one page to print"
+                      onClick={() => {
+                        setSaveOpen(false);
+                        void exportPoster("pdf");
+                      }}
+                    />
+                    <SaveChoice
+                      label="Copy text"
+                      hint="paste into notes"
+                      onClick={() => {
+                        setSaveOpen(false);
+                        void copyText();
+                      }}
+                    />
+                  </div>
+                ) : null}
+              </div>
               <button
                 type="button"
                 onClick={onReset}
@@ -224,7 +317,39 @@ export function TripPoster({ plan, trip, onReset }: Props) {
         </section>
       </div>
       <PrintPoster plan={plan} mapImage={mapImage} sheetRef={sheetRef} />
+      {feedback ? (
+        <TripFeedback
+          trip={trip}
+          parkName={plan.parkName}
+          returning={returning}
+          source={feedback}
+          testing={forceFeedback || feedbackForced()}
+          onClose={() => setFeedback(null)}
+        />
+      ) : null}
     </div>
+  );
+}
+
+function SaveChoice({
+  label,
+  hint,
+  onClick,
+}: {
+  label: string;
+  hint: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      className="flex w-full flex-col rounded-lg px-3 py-2 text-left transition hover:bg-white/70"
+    >
+      <span className="text-[13px] font-medium text-pine">{label}</span>
+      <span className="text-[11px] text-ink/45">{hint}</span>
+    </button>
   );
 }
 

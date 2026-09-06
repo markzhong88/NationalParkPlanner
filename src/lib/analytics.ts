@@ -1,3 +1,4 @@
+import type { FeedbackSource } from "./tripFeedback";
 import type { TripInput } from "../types";
 
 declare global {
@@ -79,6 +80,28 @@ export function trackPlanAnother() {
 
 export function trackFeedback() {
   track("send_feedback");
+}
+
+export function trackItineraryFeedback(opts: {
+  rating: "very" | "pretty" | "no";
+  parkName: string;
+  parkId: string;
+  days: number;
+  returning: boolean;
+  source: FeedbackSource;
+  hasNote: boolean;
+  note?: string;
+}) {
+  track("itinerary_feedback", {
+    rating: opts.rating,
+    park_id: opts.parkId,
+    park_name: opts.parkName,
+    days: opts.days,
+    returning: opts.returning,
+    source: opts.source,
+    has_note: opts.hasNote,
+    feedback_note: opts.note?.slice(0, 100),
+  });
 }
 
 function captureCampaign(): Campaign {
