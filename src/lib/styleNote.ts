@@ -97,13 +97,13 @@ const FAMILY_PACE: Record<string, string> = {
     "Mornings on the rim, shade through midday, and a pool when everyone is done walking.",
   zion: "Easy valley walks and shuttle days; add Bryce only if the kids still have legs.",
   yellowstone:
-    "Boardwalks, wildlife pulloffs, and short drives between basins — not a death-march hike.",
+    "Old Faithful and Grand Prismatic from the west gate, then Artist Point and Hayden Valley from Canyon Lodge — not both parks in one week.",
   yosemite: "Valley views from the car and short paved walks; save Half Dome for another trip.",
   glacier: "Lake McDonald and Trail of the Cedars, then over Logan Pass to Many Glacier — not a dawn-to-dusk hike.",
   acadia: "Carriage roads, a shoreline ramble, and lobster in town before bed.",
   "rocky-mountain":
     "Bear Lake and the valley floor first; Trail Ridge only if everyone is feeling the altitude.",
-  "great-smoky": "Quiet motor roads, a waterfall walk, and ice cream back in town.",
+  "great-smoky": "Laurel Falls, a dawn Cades Cove loop, then over Newfound Gap to Cherokee — not every waterfall in one day.",
   arches: "Windows and short trails from Moab; Delicate Arch if the heat and the hike both cooperate.",
   olympic: "A rainforest stroll, a beach day, and Hurricane Ridge if the clouds lift.",
   "joshua-tree": "Jumbo rocks and short nature trails; Palm Springs for the pool after the desert.",
@@ -129,12 +129,13 @@ const FAMILY_PACE: Record<string, string> = {
 const ADULT_PACE: Record<string, string> = {
   "grand-canyon": "Sunrise or late light on the rim, and the long desert miles in the cooler hours.",
   zion: "Canyon walls at first light, then a stretch to Bryce if the days allow.",
-  yellowstone: "Geysers and wildlife valleys at a sane pace, with Grand Teton if you have the extra night.",
+  yellowstone:
+    "Geyser basins from West Yellowstone, then the canyon and Hayden Valley — add Grand Teton only if you have another night.",
   yosemite: "Valley granite, a waterfall walk, and one slower day if the crowds spike.",
   glacier: "Going-to-the-Sun when the snow has melted, with Many Glacier as the east-side night.",
   acadia: "Cadillac at sunrise, the Park Loop, and a quiet evening in Bar Harbor.",
   "rocky-mountain": "Alpine tundra and elk meadows, with Estes Park as the easy base.",
-  "great-smoky": "Newfound Gap, Cades Cove, and a slower afternoon on the North Carolina side.",
+  "great-smoky": "Cades Cove at first light, Clingmans if the clouds lift, and a slower North Carolina night in Cherokee.",
   arches: "Delicate Arch in softer light, then a Canyonlands mesa day from the same Moab base.",
   olympic: "Rainforest, alpine, and Pacific beach — three parks in one loop, without rushing all three in a day.",
   "joshua-tree": "Two deserts in one park, then a Palm Springs evening when the rocks cool off.",

@@ -150,11 +150,19 @@ export const NEARBY_ADDONS: Record<string, NearbyAddOn[]> = {
       blockIds: ["geysers"],
     },
   ],
+  yellowstone: [
+    {
+      id: "grand-teton",
+      minDays: 8,
+      driveHours: 2.5,
+      driveLabel: "2.5 hr drive",
+      blockIds: ["jenny"],
+    },
+  ],
 };
 
 export const BAKED_IN_LOOP: Record<string, string> = {
   zion: "Longer Zion trips already include a Bryce Canyon day.",
-  yellowstone: "Longer Yellowstone trips already include Grand Teton.",
   arches: "Longer Arches trips already include Canyonlands.",
   sequoia: "Sequoia trips already include Grant Grove in Kings Canyon.",
   olympic: "Olympic is already ridge, rainforest, and coast in one loop.",

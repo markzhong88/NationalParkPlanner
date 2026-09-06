@@ -20,11 +20,6 @@ export const EXTRA_VIEWPOINTS: Record<string, Landmark[]> = {
     p("canyon-overlook", "Canyon Overlook", -112.947, 37.211),
     p("weeping-rock", "Weeping Rock", -112.937, 37.271),
   ],
-  yellowstone: [
-    p("yellowstone-falls", "Lower Yellowstone Falls", -110.496, 44.718),
-    p("mammoth", "Mammoth Hot Springs", -110.704, 44.977),
-    p("hayden", "Hayden Valley", -110.465, 44.66),
-  ],
   yosemite: [
     p("tunnel-view", "Tunnel View", -119.676, 37.7156),
     p("glacier-point", "Glacier Point", -119.574, 37.73),
@@ -39,11 +34,6 @@ export const EXTRA_VIEWPOINTS: Record<string, Landmark[]> = {
     p("sprague", "Sprague Lake", -105.607, 40.32),
     p("alpine-vc", "Alpine Visitor Center", -105.754, 40.441),
     p("moraine", "Moraine Park", -105.6, 40.356),
-  ],
-  "great-smoky": [
-    p("newfound-gap", "Newfound Gap", -83.425, 35.611),
-    p("laurel-falls", "Laurel Falls", -83.594, 35.671),
-    p("sugarlands", "Sugarlands Visitor Center", -83.538, 35.687),
   ],
   arches: [
     p("windows", "The Windows", -109.599, 38.624),
@@ -153,7 +143,7 @@ export const VIEWPOINT_SEARCH: Record<string, string> = {
   "emerald-pools": "Emerald Pools Zion",
   "canyon-overlook": "Canyon Overlook Zion",
   "weeping-rock": "Weeping Rock Zion",
-  "yellowstone-falls": "Lower Yellowstone Falls",
+  "yellowstone-falls": "Artist Point Lower Yellowstone Falls",
   mammoth: "Mammoth Hot Springs Yellowstone",
   hayden: "Hayden Valley Yellowstone bison",
   "tunnel-view": "Tunnel View Yosemite",
@@ -171,7 +161,8 @@ export const VIEWPOINT_SEARCH: Record<string, string> = {
   moraine: "Moraine Park Rocky Mountain elk",
   "newfound-gap": "Newfound Gap Great Smoky",
   "laurel-falls": "Laurel Falls Great Smoky",
-  sugarlands: "Sugarlands Visitor Center",
+  oconaluftee: "Oconaluftee Mountain Farm Museum",
+  cataloochee: "Cataloochee Valley elk Great Smoky",
   windows: "Windows Section Arches National Park",
   "balanced-rock": "Balanced Rock Arches",
   "park-avenue": "Park Avenue Arches",

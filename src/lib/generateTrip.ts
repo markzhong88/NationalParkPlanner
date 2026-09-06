@@ -304,7 +304,8 @@ function buildDays(args: {
     const stay = night!;
     if (stay.isGatewayReturn) {
       const from = prevArea?.name ?? park.shortName;
-      const driveHours = 3.5;
+      const driveHours =
+        park.gateway.city === "Bozeman" ? (/jackson/i.test(from) ? 5 : 2.75) : 3.5;
       days.push({
         day: i + 1,
         date,
@@ -313,7 +314,7 @@ function buildDays(args: {
         route: `${from} → ${park.gateway.city}`,
         driveHours,
         driveLabel: formatHours(driveHours),
-        activities: gatewayReturnActivities(park, family),
+        activities: gatewayReturnActivities(park, family, from),
         stay: lodgingFor(gatewayArea(park), family),
         stayPlace: park.gateway.city,
         coord: park.gateway.coord,
@@ -380,6 +381,16 @@ function arrivalActivities(args: {
   } else if (args.park.gateway.city === "Kalispell") {
     items.push(args.family ? "Easy dinner in West Glacier — skip the pass today" : "Easy dinner in West Glacier");
     items.push("If you land early, walk the Apgar lakeshore for first lake views");
+  } else if (args.park.gateway.city === "Knoxville") {
+    items.push(args.family ? "Donuts or an easy dinner in Gatlinburg — save the wildlife loop for morning" : "Easy dinner in Gatlinburg");
+    items.push("If you land early, Sugarlands Visitor Center is 10 minutes from town");
+  } else if (args.park.gateway.city === "Bozeman") {
+    items.push(
+      args.family
+        ? "Easy dinner in West Yellowstone — save the geyser basins for morning"
+        : "Easy dinner in West Yellowstone",
+    );
+    items.push("If you land early, the Grizzly & Wolf Discovery Center is an easy first hour in town");
   } else if (args.family) {
     items.push("Pool time and an easy dinner nearby");
   } else {
@@ -423,7 +434,7 @@ function departureActivities(
   ];
 }
 
-function gatewayReturnActivities(park: ParkProfile, family: boolean): string[] {
+function gatewayReturnActivities(park: ParkProfile, family: boolean, fromName?: string): string[] {
   if (park.gateway.city === "Phoenix") {
     return [
       family ? "Optional Grand Canyon sunrise before you roll south" : "South Rim sunrise, then the long drive south",
@@ -444,6 +455,28 @@ function gatewayReturnActivities(park: ParkProfile, family: boolean): string[] {
       "Drive back to Kalispell (~2.5 hrs from Many Glacier — Going-to-the-Sun westbound if it's open)",
       "Airport hotel near FCA",
       family ? "Easy dinner and an early night before the flight" : "A good dinner in Kalispell",
+    ];
+  }
+  if (park.gateway.city === "Knoxville") {
+    return [
+      "Drive back to Knoxville (~1.5 hrs from Cherokee)",
+      "Airport hotel near TYS",
+      family ? "Easy dinner and an early night before the flight" : "A good dinner in Knoxville",
+    ];
+  }
+  if (park.gateway.city === "Bozeman") {
+    if (/jackson/i.test(fromName ?? "")) {
+      return [
+        "Drive Jackson → Bozeman (~5 hrs through or around Yellowstone — start early)",
+        "Airport hotel near BZN",
+        family ? "Easy dinner and an early night before the flight" : "A good dinner in Bozeman",
+      ];
+    }
+    return [
+      "Drive toward Bozeman via Mammoth Hot Springs (~2.5 hrs from Canyon Village)",
+      "Walk the lower terraces if you have an hour, then north out the Gardiner gate",
+      "Airport hotel near BZN",
+      family ? "Easy dinner and an early night before the flight" : "A good dinner in Bozeman",
     ];
   }
   return [
@@ -562,6 +595,8 @@ function daysForLandmark(lm: { name: string; coord: Coordinates }, days: DayPlan
     "snake",
     "overlook",
     "glacier",
+    "yellowstone",
+    "geyser",
   ]);
   const tokens = name.split(/[^a-z0-9]+/).filter((word) => word.length > 4 && !skip.has(word));
   const hits = days.filter((d) => {

@@ -46,7 +46,7 @@ export const CLASSIC_TRIPS: ClassicTrip[] = [
     slug: "yellowstone-7-day",
     title: "7-day Yellowstone family road trip",
     description:
-      "A 7-day Yellowstone itinerary from Bozeman: geysers, canyon country, and a Grand Teton day when the nights allow. Daily plan and a map.",
+      "A 7-day Yellowstone itinerary from Bozeman: Old Faithful, Grand Prismatic, Artist Point, and Hayden Valley. Daily plan and a map.",
     parkId: "yellowstone",
     home: "Bozeman, MT",
     days: 7,
