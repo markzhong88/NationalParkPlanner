@@ -90,7 +90,7 @@ const HEAT_PARKS = new Set([
   "capitol-reef",
 ]);
 
-const SNOW_ROAD_PARKS = new Set(["glacier", "yellowstone", "mount-rainier", "rocky-mountain"]);
+const SNOW_ROAD_PARKS = new Set(["glacier", "yellowstone", "mount-rainier", "rocky-mountain", "grand-teton"]);
 
 const FAMILY_PACE: Record<string, string> = {
   "grand-canyon":
@@ -108,7 +108,7 @@ const FAMILY_PACE: Record<string, string> = {
   olympic: "A rainforest stroll, a beach day, and Hurricane Ridge if the clouds lift.",
   "joshua-tree": "Jumbo rocks and short nature trails; Palm Springs for the pool after the desert.",
   "bryce-canyon": "Sunrise hoodoos from the rim, and a short drop into the amphitheater if they want it.",
-  "grand-teton": "Jenny Lake, a Snake River turnout, and time in Jackson without a huge hike.",
+  "grand-teton": "Jenny Lake by boat once, the Jackson Hole tram, a river float, then Jackson Lake Lodge up north.",
   "mount-rainier": "Paradise boardwalks and waterfalls — the mountain does the work.",
   sequoia: "Big trees you can walk among, and Grant Grove as the calmer second grove.",
   "death-valley": "Sunrise at the dunes, then indoors through the furnace hours.",
@@ -139,7 +139,7 @@ const ADULT_PACE: Record<string, string> = {
   olympic: "Rainforest, alpine, and Pacific beach — three parks in one loop, without rushing all three in a day.",
   "joshua-tree": "Two deserts in one park, then a Palm Springs evening when the rocks cool off.",
   "bryce-canyon": "Hoodoos at first light, then Zion or Kanab if you stretch the trip.",
-  "grand-teton": "The range at sunrise, Jenny Lake, and a sunset on the Snake River.",
+  "grand-teton": "Jenny Lake once, the Jackson Hole tram, a Snake River float, then Jackson Lake Lodge for the north shore.",
   "mount-rainier": "Wildflowers at Paradise when the snow melts, and a glacier view above the clouds.",
   sequoia: "Giant Forest, Moro Rock, and a Grant Grove night if you want a second grove.",
   "death-valley": "Badwater and the dunes at the edges of the day; Las Vegas is the heat escape.",

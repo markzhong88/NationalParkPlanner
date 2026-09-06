@@ -103,7 +103,7 @@ export async function generateTrip(input: TripInput): Promise<TripPlan> {
       }
       return true;
     })
-    .map((lm) => ({ ...lm, days: daysForCoord(lm.coord, days) }));
+    .map((lm) => ({ ...lm, days: daysForLandmark(lm, days) }));
 
   const routeWaypoints = waypointsFromDays(days, originCoord);
   const routed = await fetchDrivingRoute(routeWaypoints);
@@ -246,15 +246,19 @@ function buildDays(args: {
       const stay = night ?? nights[0];
       const dest = stay?.area ?? mustArea(park, park.blocks[0].areaId);
       const from = flying ? park.gateway.city : home.label.split(",")[0];
+      const destIsGateway =
+        dest.name.toLowerCase() === park.gateway.city.toLowerCase() || nearby(dest.coord, park.gateway.coord);
       const driveHours = flying
-        ? stay?.block?.driveHoursFromPrev ?? 2
+        ? destIsGateway
+          ? 0
+          : stay?.block?.driveHoursFromPrev ?? 2
         : estimateDriveHours(home.coord, dest.coord);
       days.push({
         day: 1,
         date,
         color,
         title: dest.name,
-        route: `${from} → ${dest.name}`,
+        route: flying && destIsGateway ? `Fly into ${dest.name}` : `${from} → ${dest.name}`,
         driveHours,
         driveLabel: formatHours(driveHours),
         activities: arrivalActivities({
@@ -354,6 +358,7 @@ function arrivalActivities(args: {
   driveHours: number;
 }): string[] {
   const items: string[] = [];
+  const destIsGateway = args.destName.toLowerCase() === args.park.gateway.city.toLowerCase();
   if (args.flying) {
     items.push(`Fly ${args.home.airport} → ${args.park.gateway.airport}`);
     items.push(`Pick up a rental ${args.family ? "SUV" : "car"} in ${args.park.gateway.city}`);
@@ -364,10 +369,19 @@ function arrivalActivities(args: {
   } else {
     items.push(`Leave ${args.home.label.split(",")[0]} after breakfast`);
   }
-  items.push(`Drive to ${args.destName} (${formatHours(args.driveHours)})`);
+  if (!args.flying || !destIsGateway) {
+    items.push(`Drive to ${args.destName} (${formatHours(args.driveHours)})`);
+  }
   items.push(`Check in and settle at the hotel`);
-  if (args.family) items.push("Pool time and an easy dinner nearby");
-  else items.push("Golden-hour walk near the hotel");
+  if (args.park.gateway.city === "Jackson") {
+    items.push("Walk Town Square and the elk-antler arches");
+    items.push(args.family ? "Early dinner in town — skip anything strenuous" : "Early dinner downtown");
+    items.push("If you land early, drive 20–30 minutes north for first Teton views");
+  } else if (args.family) {
+    items.push("Pool time and an easy dinner nearby");
+  } else {
+    items.push("Golden-hour walk near the hotel");
+  }
   return items;
 }
 
@@ -379,6 +393,19 @@ function departureActivities(
   fromName: string,
 ): string[] {
   if (flying) {
+    if (park.gateway.city === "Jackson") {
+      const fromLodge = fromName === "Jackson Lake Lodge";
+      return [
+        fromLodge
+          ? "Easy morning at the lodge — coffee on the deck if time allows"
+          : "Easy morning — a favorite Teton view, a lake hour, or Town Square if time allows",
+        fromLodge
+          ? `Drive to ${park.gateway.airport} (~1 hr from the lodge) and return the rental`
+          : `Drive to ${park.gateway.airport} and return the rental`,
+        `Fly ${park.gateway.airport} → ${home.airport}`,
+        family ? "Keep a small bag of snacks for the flight" : "Land and head home",
+      ];
+    }
     return [
       "Easy morning — breakfast and a short walk if time allows",
       `Drive to ${park.gateway.airport} and return the rental`,
@@ -432,6 +459,12 @@ function activitiesFor(args: {
     return [
       `Drive ${fromName} → ${block.label.split("&")[0].trim()} (${formatHours(block.driveHoursFromPrev)})`,
       ...evening,
+    ];
+  }
+  if (block.driveHoursFromPrev >= 0.4) {
+    return [
+      `Drive into the park (${formatHours(block.driveHoursFromPrev)})`,
+      ...(block.fullDayActivities ?? full),
     ];
   }
   return ["No long drive today — stay local.", ...(block.fullDayActivities ?? full)];
@@ -505,6 +538,30 @@ function nearby(a: Coordinates, b: Coordinates): boolean {
   return Math.abs(a.lat - b.lat) < 0.12 && Math.abs(a.lng - b.lng) < 0.12;
 }
 
+function daysForLandmark(lm: { name: string; coord: Coordinates }, days: DayPlan[]): number[] {
+  const name = lm.name.toLowerCase();
+  const skip = new Set([
+    "jackson",
+    "lake",
+    "river",
+    "park",
+    "national",
+    "grand",
+    "teton",
+    "mountain",
+    "snake",
+    "overlook",
+  ]);
+  const tokens = name.split(/[^a-z0-9]+/).filter((word) => word.length > 4 && !skip.has(word));
+  const hits = days.filter((d) => {
+    const blob = `${d.title} ${d.activities.join(" ")}`.toLowerCase();
+    if (blob.includes(name)) return true;
+    return tokens.some((word) => blob.includes(word));
+  });
+  if (hits.length) return hits.map((d) => d.day);
+  return daysForCoord(lm.coord, days);
+}
+
 function daysForCoord(coord: Coordinates, days: DayPlan[]): number[] {
   const close = days.filter((d) => nearby(d.coord, coord));
   if (close.length) return close.map((d) => d.day);
@@ -534,14 +591,18 @@ function attachDriveLegs(
   days: DayPlan[],
   routed: Awaited<ReturnType<typeof fetchDrivingRoute>>,
 ): DriveLeg[] {
-  const moving = days.filter((d) => d.route && d.driveHours >= 0.75);
+  const moving = days.filter(
+    (d) => d.route && d.driveHours >= 0.75 && d.title !== "Fly home" && !d.title.startsWith("Return to"),
+  );
   return moving.map((d, i) => {
     const osrm = routed?.legs[i];
     if (osrm && osrm.hours > 0) {
       d.driveHours = osrm.hours;
       d.driveLabel = formatHours(osrm.hours);
       d.activities = d.activities.map((line) =>
-        /^Drive to /.test(line) ? `Drive to ${d.stayPlace} (${d.driveLabel})` : line,
+        /^Drive to /.test(line) && !/rental|airport/i.test(line)
+          ? `Drive to ${d.stayPlace} (${d.driveLabel})`
+          : line,
       );
     }
     const [from, to] = (d.route ?? "→").split("→").map((part) => part.trim());
