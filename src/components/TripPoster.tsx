@@ -41,7 +41,6 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
   const [mapImage, setMapImage] = useState<string | null>(null);
   const [busy, setBusy] = useState<"png" | "pdf" | "text" | null>(null);
   const [copied, setCopied] = useState<"copied" | "downloaded" | false>(false);
-  const [saveOpen, setSaveOpen] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<FeedbackSource | null>(null);
   const skipScroll = useRef(true);
@@ -49,7 +48,6 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
   const idleArmed = useRef(false);
   const openedForced = useRef(false);
   const offerFeedbackRef = useRef<(source: FeedbackSource) => void>(() => undefined);
-  const saveRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<ArtisticMapHandle>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
@@ -102,22 +100,6 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
       window.clearTimeout(feedbackTimer.current);
     };
   }, [forceFeedback]);
-
-  useEffect(() => {
-    if (!saveOpen) return;
-    const onPointer = (event: PointerEvent) => {
-      if (!saveRef.current?.contains(event.target as Node)) setSaveOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSaveOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointer);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [saveOpen]);
 
   const clearFeedbackTimer = () => {
     window.clearTimeout(feedbackTimer.current);
@@ -210,56 +192,13 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
               RIMFOLD
             </button>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="relative" ref={saveRef}>
-                <button
-                  type="button"
-                  disabled={busy != null}
-                  aria-haspopup="menu"
-                  aria-expanded={saveOpen}
-                  onClick={() => setSaveOpen((open) => !open)}
-                  className="rounded-full bg-pine px-3 py-1.5 text-[12px] font-medium text-[#f4efe4] transition hover:bg-pine/90 disabled:opacity-50"
-                >
-                  {busy
-                    ? "Saving…"
-                    : copied === "copied"
-                      ? "Copied"
-                      : copied === "downloaded"
-                        ? "Saved"
-                        : "Save trip"}
-                </button>
-                {saveOpen && busy == null ? (
-                  <div
-                    role="menu"
-                    aria-label="Save trip"
-                    className="absolute right-0 z-20 mt-1.5 w-[11.5rem] rounded-xl bg-[#f4efe4] p-1 shadow-[0_12px_32px_rgba(26,35,50,0.18)] ring-1 ring-pine/12"
-                  >
-                    <SaveChoice
-                      label="Poster image"
-                      hint="share or print later"
-                      onClick={() => {
-                        setSaveOpen(false);
-                        void exportPoster("png");
-                      }}
-                    />
-                    <SaveChoice
-                      label="PDF"
-                      hint="one page to print"
-                      onClick={() => {
-                        setSaveOpen(false);
-                        void exportPoster("pdf");
-                      }}
-                    />
-                    <SaveChoice
-                      label="Copy text"
-                      hint="paste into notes"
-                      onClick={() => {
-                        setSaveOpen(false);
-                        void copyText();
-                      }}
-                    />
-                  </div>
-                ) : null}
-              </div>
+              <SaveTripControl
+                busy={busy}
+                copied={copied}
+                onPng={() => void exportPoster("png")}
+                onPdf={() => void exportPoster("pdf")}
+                onCopy={() => void copyText()}
+              />
               <button
                 type="button"
                 onClick={onReset}
@@ -319,6 +258,17 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
             </div>
           </section>
 
+          <div className="no-print px-0.5">
+            <SaveTripControl
+              variant="footer"
+              busy={busy}
+              copied={copied}
+              onPng={() => void exportPoster("png")}
+              onPdf={() => void exportPoster("pdf")}
+              onCopy={() => void copyText()}
+            />
+          </div>
+
           <p className="no-print px-0.5 text-[12px] text-ink/45">
             Something off?{" "}
             <FeedbackLink className="font-medium text-pine/80 underline decoration-gold/60 underline-offset-4 transition hover:text-pine" />
@@ -338,6 +288,96 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
           testing={forceFeedback || feedbackForced()}
           onClose={() => setFeedback(null)}
         />
+      ) : null}
+    </div>
+  );
+}
+
+function SaveTripControl({
+  busy,
+  copied,
+  onPng,
+  onPdf,
+  onCopy,
+  variant = "header",
+}: {
+  busy: "png" | "pdf" | "text" | null;
+  copied: "copied" | "downloaded" | false;
+  onPng: () => void;
+  onPdf: () => void;
+  onCopy: () => void;
+  variant?: "header" | "footer";
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const footer = variant === "footer";
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const label =
+    busy != null ? "Saving…" : copied === "copied" ? "Copied" : copied === "downloaded" ? "Saved" : "Save trip";
+
+  return (
+    <div className="relative" ref={rootRef}>
+      <button
+        type="button"
+        disabled={busy != null}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className="rounded-full bg-pine px-3 py-1.5 text-[12px] font-medium text-[#f4efe4] transition hover:bg-pine/90 disabled:opacity-50"
+      >
+        {label}
+      </button>
+      {open && busy == null ? (
+        <div
+          role="menu"
+          aria-label="Save trip"
+          className={
+            footer
+              ? "absolute left-0 z-20 mt-1.5 w-[11.5rem] rounded-xl bg-[#f4efe4] p-1 shadow-[0_12px_32px_rgba(26,35,50,0.18)] ring-1 ring-pine/12"
+              : "absolute right-0 z-20 mt-1.5 w-[11.5rem] rounded-xl bg-[#f4efe4] p-1 shadow-[0_12px_32px_rgba(26,35,50,0.18)] ring-1 ring-pine/12"
+          }
+        >
+          <SaveChoice
+            label="Poster image"
+            hint="share or print later"
+            onClick={() => {
+              setOpen(false);
+              onPng();
+            }}
+          />
+          <SaveChoice
+            label="PDF"
+            hint="one page to print"
+            onClick={() => {
+              setOpen(false);
+              onPdf();
+            }}
+          />
+          <SaveChoice
+            label="Copy text"
+            hint="paste into notes"
+            onClick={() => {
+              setOpen(false);
+              onCopy();
+            }}
+          />
+        </div>
       ) : null}
     </div>
   );

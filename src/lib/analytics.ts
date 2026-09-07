@@ -82,6 +82,13 @@ export function trackFeedback() {
   track("send_feedback");
 }
 
+export function trackFeedbackShown(source: FeedbackSource, testing = false) {
+  track("feedback_card_shown", {
+    feedback_source: source,
+    testing,
+  });
+}
+
 export function trackItineraryFeedback(opts: {
   rating: "very" | "pretty" | "no";
   parkName: string;

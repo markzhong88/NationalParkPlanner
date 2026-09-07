@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FEEDBACK_EMAIL } from "./FeedbackLink";
-import { trackItineraryFeedback } from "../lib/analytics";
+import { trackFeedbackShown, trackItineraryFeedback } from "../lib/analytics";
 import {
   FEEDBACK_RATINGS,
   markFeedbackDismissed,
@@ -30,6 +30,10 @@ export function TripFeedback({
   const [rating, setRating] = useState<FeedbackRating | null>(null);
   const [note, setNote] = useState("");
   const [status, setStatus] = useState<"ask" | "sending" | "thanks" | "mailto">("ask");
+
+  useEffect(() => {
+    trackFeedbackShown(source, testing);
+  }, [source, testing]);
 
   const submit = async () => {
     if (!rating || status !== "ask") return;
