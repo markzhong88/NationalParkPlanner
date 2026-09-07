@@ -17,6 +17,7 @@ import {
   posterFilename,
   waitForImage,
   waitFrames,
+  warmPosterPhoto,
 } from "../lib/exportPoster";
 import { copyTripText } from "../lib/tripText";
 import { trackCopyTrip, trackDownload } from "../lib/analytics";
@@ -69,10 +70,7 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
 
   useEffect(() => {
     for (const lm of plan.landmarks) {
-      if (!lm.photo) continue;
-      const img = new Image();
-      img.src = lm.photo;
-      void img.decode().catch(() => undefined);
+      if (lm.photo) warmPosterPhoto(lm.photo);
     }
   }, [plan.landmarks]);
 
@@ -132,17 +130,23 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
   };
 
   const prepareSheet = async () => {
+    const photos = [...(sheetRef.current?.querySelectorAll<HTMLImageElement>("img[data-print-photo]") ?? [])];
+    const photoWarm = Promise.all(
+      photos.map((photo) =>
+        Promise.all([
+          warmPosterPhoto(photo.currentSrc || photo.src),
+          waitForImage(photo).catch(() => undefined),
+        ]),
+      ),
+    );
     const shot = await mapRef.current?.snapshot();
     if (!shot) throw new Error("The map is still drawing.");
     flushSync(() => setMapImage(shot));
     await waitFrames(2);
     const img = sheetRef.current?.querySelector<HTMLImageElement>("img[data-print-map]");
     if (img) await waitForImage(img);
-    const photos = sheetRef.current?.querySelectorAll<HTMLImageElement>("img.print-photo-img") ?? [];
-    await Promise.all(
-      [...photos].map((photo) => waitForImage(photo).catch(() => undefined)),
-    );
-    await waitFrames(2);
+    await photoWarm;
+    await waitFrames(1);
     const sheet = sheetRef.current;
     if (!sheet) throw new Error("Couldn’t build the poster.");
     return { sheet, mapImage: shot };

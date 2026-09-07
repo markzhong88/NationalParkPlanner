@@ -100,6 +100,7 @@ export function PrintPoster({
               {photos.map((lm) => (
                 <figure key={lm.id} className="print-photo">
                   <img
+                    data-print-photo="true"
                     className="print-photo-img"
                     src={lm.photo}
                     alt=""

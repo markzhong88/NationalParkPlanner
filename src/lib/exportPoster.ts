@@ -80,10 +80,10 @@ export async function captureNodePng(node: HTMLElement, mapImage?: string) {
     skipFonts: false,
     backgroundColor: "#f3ede0",
     style: POSTER_STYLE,
-    filter: skipPrintMapImage,
+    filter: skipPrintRasterImages,
   });
   if (!mapImage) return poster;
-  return pasteMapOntoPoster(poster, mapImage, node, "png");
+  return pasteOverlaysOntoPoster(poster, mapImage, node, "png");
 }
 
 export async function captureNodeJpeg(node: HTMLElement, mapImage?: string) {
@@ -98,10 +98,10 @@ export async function captureNodeJpeg(node: HTMLElement, mapImage?: string) {
     skipFonts: false,
     backgroundColor: "#f3ede0",
     style: POSTER_STYLE,
-    filter: skipPrintMapImage,
+    filter: skipPrintRasterImages,
   });
   if (!mapImage) return poster;
-  return pasteMapOntoPoster(poster, mapImage, node, "jpeg");
+  return pasteOverlaysOntoPoster(poster, mapImage, node, "jpeg");
 }
 
 function posterCaptureSize(_node: HTMLElement) {
@@ -111,17 +111,49 @@ function posterCaptureSize(_node: HTMLElement) {
   };
 }
 
-function skipPrintMapImage(domNode: HTMLElement) {
-  return !(domNode instanceof HTMLImageElement && domNode.dataset.printMap === "true");
+function skipPrintRasterImages(domNode: HTMLElement) {
+  if (!(domNode instanceof HTMLImageElement)) return true;
+  return domNode.dataset.printMap !== "true" && domNode.dataset.printPhoto !== "true";
 }
 
-async function pasteMapOntoPoster(
+const photoBitmaps = new Map<string, Promise<ImageBitmap>>();
+
+export function warmPosterPhoto(src: string) {
+  if (!src) return Promise.resolve();
+  const key = new URL(src, window.location.href).href;
+  if (!photoBitmaps.has(key)) {
+    photoBitmaps.set(
+      key,
+      fetch(key)
+        .then((res) => {
+          if (!res.ok) throw new Error("Couldn’t load a poster image.");
+          return res.blob();
+        })
+        .then((blob) => createImageBitmap(blob)),
+    );
+  }
+  return photoBitmaps.get(key)!.then(() => undefined).catch(() => undefined);
+}
+
+async function photoBitmap(src: string): Promise<ImageBitmap | null> {
+  if (!src) return null;
+  const key = new URL(src, window.location.href).href;
+  warmPosterPhoto(key);
+  try {
+    return (await photoBitmaps.get(key)) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function pasteOverlaysOntoPoster(
   posterUrl: string,
   mapUrl: string,
   sheet: HTMLElement,
   kind: "png" | "jpeg",
 ) {
   const slot = sheet.querySelector<HTMLElement>("[data-print-map-slot]");
+  const photos = [...sheet.querySelectorAll<HTMLImageElement>("img[data-print-photo]")];
   const poster = await loadHtmlImage(posterUrl);
   const map = await loadHtmlImage(mapUrl);
   const canvas = document.createElement("canvas");
@@ -131,16 +163,28 @@ async function pasteMapOntoPoster(
   if (!ctx) throw new Error("Couldn’t build the poster.");
   ctx.drawImage(poster, 0, 0);
 
+  const sheetBox = sheet.getBoundingClientRect();
+  const scaleX = canvas.width / Math.max(1, sheetBox.width);
+  const scaleY = canvas.height / Math.max(1, sheetBox.height);
+  const place = (box: DOMRect) => ({
+    x: (box.left - sheetBox.left) * scaleX,
+    y: (box.top - sheetBox.top) * scaleY,
+    w: box.width * scaleX,
+    h: box.height * scaleY,
+  });
+
   if (slot) {
-    const sheetBox = sheet.getBoundingClientRect();
-    const slotBox = slot.getBoundingClientRect();
-    const scaleX = canvas.width / Math.max(1, sheetBox.width);
-    const scaleY = canvas.height / Math.max(1, sheetBox.height);
-    const x = (slotBox.left - sheetBox.left) * scaleX;
-    const y = (slotBox.top - sheetBox.top) * scaleY;
-    const w = slotBox.width * scaleX;
-    const h = slotBox.height * scaleY;
+    const { x, y, w, h } = place(slot.getBoundingClientRect());
     drawContain(ctx, map, x, y, w, h);
+  }
+
+  for (const img of photos) {
+    const { x, y, w, h } = place(img.getBoundingClientRect());
+    if (w < 1 || h < 1) continue;
+    const bmp = await photoBitmap(img.currentSrc || img.src);
+    const source = bmp ?? (img.complete && img.naturalWidth > 0 ? img : null);
+    if (!source) continue;
+    drawCover(ctx, source, x, y, w, h);
   }
 
   return kind === "png" ? canvas.toDataURL("image/png") : canvas.toDataURL("image/jpeg", 0.95);
@@ -148,19 +192,52 @@ async function pasteMapOntoPoster(
 
 function drawContain(
   ctx: CanvasRenderingContext2D,
-  img: HTMLImageElement,
+  img: CanvasImageSource,
   x: number,
   y: number,
   w: number,
   h: number,
 ) {
-  const ir = img.naturalWidth / Math.max(1, img.naturalHeight);
+  fitImage(ctx, img, x, y, w, h, "contain");
+}
+
+function drawCover(
+  ctx: CanvasRenderingContext2D,
+  img: CanvasImageSource,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+) {
+  fitImage(ctx, img, x, y, w, h, "cover");
+}
+
+function sourceSize(img: CanvasImageSource) {
+  if (img instanceof HTMLImageElement) return { w: img.naturalWidth, h: img.naturalHeight };
+  if (typeof ImageBitmap !== "undefined" && img instanceof ImageBitmap) {
+    return { w: img.width, h: img.height };
+  }
+  return { w: 0, h: 0 };
+}
+
+function fitImage(
+  ctx: CanvasRenderingContext2D,
+  img: CanvasImageSource,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  mode: "contain" | "cover",
+) {
+  const { w: iw, h: ih } = sourceSize(img);
+  const ir = iw / Math.max(1, ih);
   const r = w / Math.max(1, h);
   let dw = w;
   let dh = h;
   let dx = x;
   let dy = y;
-  if (ir > r) {
+  const fitWider = mode === "contain" ? ir > r : ir < r;
+  if (fitWider) {
     dw = w;
     dh = w / ir;
     dy = y + (h - dh) / 2;
@@ -173,8 +250,10 @@ function drawContain(
   ctx.beginPath();
   ctx.rect(x, y, w, h);
   ctx.clip();
-  ctx.fillStyle = "#e7dcc8";
-  ctx.fillRect(x, y, w, h);
+  if (mode === "contain") {
+    ctx.fillStyle = "#e7dcc8";
+    ctx.fillRect(x, y, w, h);
+  }
   ctx.drawImage(img, dx, dy, dw, dh);
   ctx.restore();
 }
