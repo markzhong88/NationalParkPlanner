@@ -185,6 +185,10 @@ async function pasteOverlaysOntoPoster(
     const source = bmp ?? (img.complete && img.naturalWidth > 0 ? img : null);
     if (!source) continue;
     drawCover(ctx, source, x, y, w, h);
+    const caption = img
+      .closest("figure")
+      ?.querySelector<HTMLElement>("[data-print-photo-caption]");
+    if (caption) drawCaption(ctx, caption, place(caption.getBoundingClientRect()), scaleY);
   }
 
   return kind === "png" ? canvas.toDataURL("image/png") : canvas.toDataURL("image/jpeg", 0.95);
@@ -255,6 +259,27 @@ function fitImage(
     ctx.fillRect(x, y, w, h);
   }
   ctx.drawImage(img, dx, dy, dw, dh);
+  ctx.restore();
+}
+
+function drawCaption(
+  ctx: CanvasRenderingContext2D,
+  el: HTMLElement,
+  box: { x: number; y: number; w: number; h: number },
+  scale: number,
+) {
+  const text = el.textContent?.trim();
+  if (!text || box.w < 1 || box.h < 1) return;
+  const style = getComputedStyle(el);
+  const fontSize = Math.max(10, parseFloat(style.fontSize) * scale);
+  ctx.save();
+  ctx.fillStyle = "#f3ede0";
+  ctx.fillRect(box.x, box.y, box.w, box.h);
+  ctx.fillStyle = style.color || "#1f3a2e";
+  ctx.font = `${style.fontWeight || 500} ${fontSize}px ${style.fontFamily || "Oswald, sans-serif"}`;
+  ctx.textBaseline = "top";
+  ctx.textAlign = "left";
+  ctx.fillText(text, box.x, box.y, box.w);
   ctx.restore();
 }
 

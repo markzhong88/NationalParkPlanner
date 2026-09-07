@@ -129,6 +129,7 @@ const FILES = {
   ruby: "Ruby_Beach_1.jpg",
   cholla: "Cholla_Cactus_Garden.jpg",
   tram: "Palm_Springs_Aerial_Tramway.jpg",
+  navajo: "Thor's Hammer in Bryce Canyon National Park.jpg",
   dunes: "Coral_Pink_Sand_Dunes.jpg",
   jenny: "Jenny_Lake.jpg",
   "snake-river": "Snake_River_Overlook.jpg",
@@ -229,14 +230,9 @@ async function main() {
     }
     await new Promise((r) => setTimeout(r, 900));
   }
-  if (await exists(path.join(OUT, "bryce.jpg"))) {
-    if (!(await exists(path.join(OUT, "navajo.jpg")))) {
-      await copyFile(path.join(OUT, "bryce.jpg"), path.join(OUT, "navajo.jpg"));
-      report.push("navajo\tCOPY\tbryce.jpg");
-    }
-    if (!(await exists(path.join(OUT, "amphitheater.jpg")))) {
-      await copyFile(path.join(OUT, "bryce.jpg"), path.join(OUT, "amphitheater.jpg"));
-    }
+  if (await exists(path.join(OUT, "bryce.jpg")) && !(await exists(path.join(OUT, "amphitheater.jpg")))) {
+    await copyFile(path.join(OUT, "bryce.jpg"), path.join(OUT, "amphitheater.jpg"));
+    report.push("amphitheater\tCOPY\tbryce.jpg");
   }
   await writeFile(path.join(OUT, "manifest.tsv"), report.join("\n"));
   console.log(report.join("\n"));

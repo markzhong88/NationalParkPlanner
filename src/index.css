@@ -585,15 +585,15 @@ button {
   background: #e7dcc8;
 }
 
-.print-photo figcaption {
+.print-photo-caption {
   flex: 0 0 auto;
-  margin: 4px 0 0;
-  font-family: "DM Sans", sans-serif;
-  font-size: 12px;
+  margin: 5px 0 0;
+  font-family: Oswald, sans-serif;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 15px;
-  letter-spacing: 0.02em;
-  color: #3d4a5c;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  color: #1f3a2e;
 }
 
 .print-days-label {

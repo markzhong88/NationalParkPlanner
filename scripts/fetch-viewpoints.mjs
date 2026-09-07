@@ -7,6 +7,9 @@ import path from "node:path";
 const UA = "Rimfold/0.1 (local national park planner demo)";
 const OUT = path.resolve("public/landmarks");
 const SKIP = /bathroom|toilet|tent|campsite|campground|map of|logo|icon|svg|pdf/i;
+const FILES = {
+  "inspiration-point": "Bryce Canyon Inspiration Point 3.jpg",
+};
 
 async function exists(file) {
   try {
@@ -73,6 +76,17 @@ async function main() {
       continue;
     }
     try {
+      if (FILES[id]) {
+        const url = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(FILES[id])}?width=800`;
+        await download(url, dest);
+        if ((await stat(dest)).size < 8000) {
+          await unlink(dest);
+          throw new Error("tiny");
+        }
+        report.push(`${id}\tFILE\t${FILES[id]}`);
+        await new Promise((r) => setTimeout(r, 2500));
+        continue;
+      }
       const files = await searchFile(query);
       let saved = false;
       for (const file of files) {

@@ -106,7 +106,9 @@ export function PrintPoster({
                     alt=""
                     style={{ height: photoHeight }}
                   />
-                  <figcaption>{lm.name}</figcaption>
+                  <p data-print-photo-caption="true" className="print-photo-caption">
+                    {lm.name}
+                  </p>
                 </figure>
               ))}
             </div>
@@ -217,11 +219,16 @@ function posterActivityLimit(dayCount: number) {
 
 function posterPhotos(landmarks: Landmark[], max: number): (Landmark & { photo: string })[] {
   const withPhoto = landmarks.filter((lm): lm is Landmark & { photo: string } => Boolean(lm.photo));
-  if (withPhoto.length <= max) return withPhoto;
+  const unique: (Landmark & { photo: string })[] = [];
+  for (const lm of withPhoto) {
+    if (unique.some((pick) => pick.photo === lm.photo)) continue;
+    unique.push(lm);
+  }
+  if (unique.length <= max) return unique;
   const picks: (Landmark & { photo: string })[] = [];
   for (let i = 0; i < max; i++) {
-    const idx = Math.round((i * (withPhoto.length - 1)) / Math.max(1, max - 1));
-    const lm = withPhoto[idx];
+    const idx = Math.round((i * (unique.length - 1)) / Math.max(1, max - 1));
+    const lm = unique[idx];
     if (lm && !picks.some((pick) => pick.id === lm.id)) picks.push(lm);
   }
   return picks;
@@ -246,6 +253,6 @@ function posterPhotoImageHeight(
   if (photoCount < 1) return 0;
   const header = (hasQuote ? 196 : 164) + Math.max(0, titleLines - 1) * 64;
   const body = POSTER_H - 36 - header - 46;
-  const leftover = body - (mapHeight + 14) - 10 - 8 * (photoCount - 1) - 19 * photoCount;
+  const leftover = body - (mapHeight + 14) - 10 - 8 * (photoCount - 1) - 21 * photoCount;
   return Math.max(80, Math.floor(leftover / photoCount));
 }
