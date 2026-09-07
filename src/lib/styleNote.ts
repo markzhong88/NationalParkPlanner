@@ -97,7 +97,7 @@ const FAMILY_PACE: Record<string, string> = {
     "Mornings on the rim, shade through midday, and a pool when everyone is done walking.",
   zion: "Easy valley walks and shuttle days; add Bryce only if the kids still have legs.",
   yellowstone:
-    "Old Faithful and Grand Prismatic from the west gate, then Artist Point and Hayden Valley from Canyon Lodge — not both parks in one week.",
+    "Old Faithful and Grand Prismatic from the west gate, then Artist Point and Hayden Valley from Canyon Lodge.",
   yosemite: "Valley views from the car and short paved walks; save Half Dome for another trip.",
   glacier: "Lake McDonald and Trail of the Cedars, then over Logan Pass to Many Glacier — not a dawn-to-dusk hike.",
   acadia: "Carriage roads, a shoreline ramble, and lobster in town before bed.",
@@ -130,7 +130,7 @@ const ADULT_PACE: Record<string, string> = {
   "grand-canyon": "Sunrise or late light on the rim, and the long desert miles in the cooler hours.",
   zion: "Canyon walls at first light, then a stretch to Bryce if the days allow.",
   yellowstone:
-    "Geyser basins from West Yellowstone, then the canyon and Hayden Valley — add Grand Teton only if you have another night.",
+    "Geyser basins from West Yellowstone, then the canyon and Hayden Valley. Grand Teton is a 2.5-hour add-on when you want the extra night.",
   yosemite: "Valley granite, a waterfall walk, and one slower day if the crowds spike.",
   glacier: "Going-to-the-Sun when the snow has melted, with Many Glacier as the east-side night.",
   acadia: "Cadillac at sunrise, the Park Loop, and a quiet evening in Bar Harbor.",

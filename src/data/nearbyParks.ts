@@ -153,7 +153,7 @@ export const NEARBY_ADDONS: Record<string, NearbyAddOn[]> = {
   yellowstone: [
     {
       id: "grand-teton",
-      minDays: 8,
+      minDays: 7,
       driveHours: 2.5,
       driveLabel: "2.5 hr drive",
       blockIds: ["jenny"],

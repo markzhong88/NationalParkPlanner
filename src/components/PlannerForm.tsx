@@ -40,10 +40,7 @@ export function PlannerForm({ value, onChange, onSubmit, onDemo }: Props) {
 
   const setDays = (days: number) => {
     const addon = nearbyAddon(value.parkId, value.alsoParkId);
-    patch({
-      days,
-      alsoParkId: addon && days < addon.minDays ? undefined : value.alsoParkId,
-    });
+    patch({ days: addon ? Math.max(days, addon.minDays) : days });
   };
 
   return (
@@ -97,7 +94,7 @@ export function PlannerForm({ value, onChange, onSubmit, onDemo }: Props) {
           </select>
           <p className="text-[12px] leading-snug text-ink-soft">
             {selectedAddon
-              ? `We’ll add ${getPark(selectedAddon.id)?.shortName} as a second park on this loop.`
+              ? `We’ll add ${getPark(selectedAddon.id)?.shortName} as a second park (${selectedAddon.minDays}+ days on this loop).`
               : "Optional second park, only if it shares a real drive with the first."}
           </p>
         </label>
@@ -123,7 +120,7 @@ export function PlannerForm({ value, onChange, onSubmit, onDemo }: Props) {
       <NumberField
         label="Days"
         value={value.days}
-        min={3}
+        min={selectedAddon?.minDays ?? 3}
         max={10}
         onChange={setDays}
       />
