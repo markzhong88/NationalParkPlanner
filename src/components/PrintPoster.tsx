@@ -217,7 +217,7 @@ function posterActivityLimit(dayCount: number) {
 function posterPhotos(landmarks: Landmark[], max: number): (Landmark & { photo: string })[] {
   const withPhoto = landmarks.filter((lm): lm is Landmark & { photo: string } => Boolean(lm.photo));
   if (withPhoto.length <= max) return withPhoto;
-  const picks: Landmark[] = [];
+  const picks: (Landmark & { photo: string })[] = [];
   for (let i = 0; i < max; i++) {
     const idx = Math.round((i * (withPhoto.length - 1)) / Math.max(1, max - 1));
     const lm = withPhoto[idx];

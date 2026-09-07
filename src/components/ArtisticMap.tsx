@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import type { GeoJSONSource } from "maplibre-gl";
-import type { Coordinates, Landmark, TripPlan } from "../types";
+import type { Coordinates, TripPlan } from "../types";
 import { DrivingSummary } from "./DrivingSummary";
 import { exportMapViewport } from "../lib/geo";
 
@@ -882,20 +882,6 @@ function layoutLiveCallouts(callouts: LiveCallout[], map: maplibregl.Map) {
   });
 }
 
-function layoutCalloutRects(
-  pins: { x: number; y: number }[],
-  preferred: [number, number][],
-  opt: CalloutLayoutOpt,
-) {
-  const offsets = layoutCalloutOffsets(pins, preferred, opt);
-  return offsets.map((off, i) => ({
-    x: pins[i].x + off[0] - opt.anchorX,
-    y: pins[i].y + off[1] - opt.anchorY,
-    w: opt.cardW,
-    h: opt.cardH,
-  }));
-}
-
 function layoutCalloutsToEdges(
   pins: { x: number; y: number }[],
   opt: CalloutLayoutOpt,
@@ -1201,13 +1187,6 @@ function maxTravel(
   return t;
 }
 
-function nearestRectPoint(x: number, y: number, rect: { x: number; y: number; w: number; h: number }) {
-  return {
-    x: clamp(x, rect.x, rect.x + rect.w),
-    y: clamp(y, rect.y, rect.y + rect.h),
-  };
-}
-
 function roundRectPath(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -1254,10 +1233,6 @@ function fitLabel(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
     value = value.slice(0, -1);
   }
   return `${value}…`;
-}
-
-function clamp(n: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, n));
 }
 
 function canvasScale(map: maplibregl.Map, canvas: HTMLCanvasElement) {
