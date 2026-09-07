@@ -68,6 +68,15 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
   }, [mapImage]);
 
   useEffect(() => {
+    for (const lm of plan.landmarks) {
+      if (!lm.photo) continue;
+      const img = new Image();
+      img.src = lm.photo;
+      void img.decode().catch(() => undefined);
+    }
+  }, [plan.landmarks]);
+
+  useEffect(() => {
     const previous = document.title;
     document.title = `${prettyTitle(plan.title)} — Rimfold`;
     return () => {
@@ -129,7 +138,11 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
     await waitFrames(2);
     const img = sheetRef.current?.querySelector<HTMLImageElement>("img[data-print-map]");
     if (img) await waitForImage(img);
-    await waitFrames(1);
+    const photos = sheetRef.current?.querySelectorAll<HTMLImageElement>("img.print-photo-img") ?? [];
+    await Promise.all(
+      [...photos].map((photo) => waitForImage(photo).catch(() => undefined)),
+    );
+    await waitFrames(2);
     const sheet = sheetRef.current;
     if (!sheet) throw new Error("Couldn’t build the poster.");
     return { sheet, mapImage: shot };

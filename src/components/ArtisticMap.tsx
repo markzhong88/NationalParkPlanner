@@ -474,8 +474,9 @@ async function rasterizeMap(map: maplibregl.Map, plan: TripPlan): Promise<string
 
   const fit = { x: 0, y: 0, w: src.width, h: src.height };
   const plot = plotter(map, src, fit);
+  drawDriveLabels(plan, srcCtx, plot, src);
+  drawLandmarkNames(plan, srcCtx, plot, src);
   drawStops(plan, srcCtx, plot, src);
-  await drawLandmarkPhotos(plan, src, srcCtx, plot);
   return src.toDataURL("image/jpeg", 0.95);
 }
 
@@ -605,8 +606,10 @@ function exportOverlayMetrics(canvas: HTMLCanvasElement) {
     pinR: Math.round(cardW * 0.032),
     pinStroke: Math.round(cardW * 0.012),
     leader: Math.max(5, Math.round(cardW * 0.02)),
-    stopR: Math.round(w * 0.008),
-    stopFont: Math.round(w * 0.02),
+    stopR: Math.round(w * 0.009),
+    stopFont: Math.round(w * 0.026),
+    siteFont: Math.round(w * 0.021),
+    chipFont: Math.round(w * 0.018),
   };
 }
 
@@ -617,6 +620,7 @@ function drawStops(
   canvas: HTMLCanvasElement,
 ) {
   const m = exportOverlayMetrics(canvas);
+  const maxW = Math.round(canvas.width * 0.28);
   ctx.save();
   ctx.font = `700 ${m.stopFont}px "DM Sans", sans-serif`;
   ctx.textAlign = "center";
@@ -630,129 +634,118 @@ function drawStops(
     ctx.lineWidth = m.pinStroke;
     ctx.strokeStyle = "#fffdf8";
     ctx.stroke();
-    ctx.lineJoin = "round";
-    ctx.miterLimit = 2;
-    ctx.lineWidth = Math.max(4, m.pinStroke * 1.4);
-    ctx.strokeStyle = "rgba(243,237,224,0.94)";
-    ctx.strokeText(stop.name, x, y + m.stopR + 6);
-    ctx.fillStyle = "rgba(26,35,50,0.9)";
-    ctx.fillText(stop.name, x, y + m.stopR + 6);
+    paintMapLabel(ctx, wrapLabel(ctx, stop.name, maxW), x, y + m.stopR + 6, m.stopFont, m.pinStroke);
   }
   ctx.restore();
 }
 
-async function drawLandmarkPhotos(
+function drawLandmarkNames(
   plan: TripPlan,
-  canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
   plot: Plotter,
+  canvas: HTMLCanvasElement,
 ) {
-  const picks = pickExportPhotos(plan.landmarks, 4);
-  if (!picks.length) return;
   const m = exportOverlayMetrics(canvas);
-  const ready: { lm: Landmark; img: HTMLImageElement; pin: { x: number; y: number } }[] = [];
+  const stopNames = plan.mapStops.map((stop) => normalizePlace(stop.name));
+  const occupied = plan.mapStops.map((stop) => plot.point(stop.coord.lng, stop.coord.lat));
+  const minDist = m.stopFont * 1.45;
+  const maxW = Math.round(canvas.width * 0.24);
+  const sites: { name: string; x: number; y: number }[] = [];
 
-  for (const lm of picks) {
-    if (!lm.photo) continue;
-    const img = await tryLoadImage(lm.photo);
-    if (!img) continue;
-    ready.push({ lm, img, pin: plot.point(lm.coord.lng, lm.coord.lat) });
+  for (const lm of plan.landmarks) {
+    if (stopNames.some((name) => similarPlace(name, normalizePlace(lm.name)))) continue;
+    const pin = plot.point(lm.coord.lng, lm.coord.lat);
+    if (pin.x < m.pad || pin.y < m.pad || pin.x > canvas.width - m.pad || pin.y > canvas.height - m.pad) {
+      continue;
+    }
+    if (occupied.some((pt) => hypot(pt.x - pin.x, pt.y - pin.y) < minDist)) continue;
+    occupied.push(pin);
+    sites.push({ name: lm.name, x: pin.x, y: pin.y });
+    if (sites.length >= 8) break;
   }
-  ready.sort((a, b) => a.pin.y - b.pin.y || a.pin.x - b.pin.x);
 
-  const rects = layoutCalloutRects(
-    ready.map((item) => item.pin),
-    ready.map((item) => item.lm.offset ?? defaultOffset(item.lm.id)),
-    {
-      cardW: m.cardW,
-      cardH: m.cardH,
-      anchorX: m.cardW / 2,
-      anchorY: m.cardH / 2,
-      viewW: canvas.width,
-      viewH: canvas.height,
-      pad: m.pad,
-      minLeader: Math.round(m.cardW * 1.08),
-      gap: Math.round(m.cardW * 0.14),
-      spreadToEdges: true,
-    },
-  );
-
-  for (let i = 0; i < ready.length; i++) {
-    const { lm, img, pin } = ready[i];
-    const rect = rects[i];
-    const { x: cardX, y: cardY } = rect;
-
+  ctx.save();
+  ctx.font = `600 ${m.siteFont}px "DM Sans", sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  const pinR = Math.max(4, m.stopR * 0.58);
+  for (const site of sites) {
     ctx.beginPath();
-    ctx.arc(pin.x, pin.y, m.pinR, 0, Math.PI * 2);
+    ctx.arc(site.x, site.y, pinR, 0, Math.PI * 2);
     ctx.fillStyle = "#c4a574";
     ctx.fill();
-    ctx.lineWidth = m.pinStroke;
+    ctx.lineWidth = Math.max(2, m.pinStroke * 0.7);
     ctx.strokeStyle = "#fffdf8";
     ctx.stroke();
-
-    const edge = nearestRectPoint(pin.x, pin.y, rect);
-    ctx.beginPath();
-    ctx.moveTo(pin.x, pin.y);
-    ctx.lineTo(edge.x, edge.y);
-    ctx.strokeStyle = "rgba(26,35,50,0.55)";
-    ctx.lineWidth = m.leader;
-    ctx.stroke();
-
-    ctx.save();
-    ctx.shadowColor = "rgba(26,35,50,0.22)";
-    ctx.shadowBlur = m.radius * 1.6;
-    ctx.shadowOffsetY = m.radius * 0.6;
-    roundRectPath(ctx, cardX, cardY, m.cardW, m.cardH, m.radius);
-    ctx.fillStyle = "#fffdf8";
-    ctx.fill();
-    ctx.restore();
-    roundRectPath(ctx, cardX, cardY, m.cardW, m.cardH, m.radius);
-    ctx.lineWidth = Math.max(3, m.pinStroke);
-    ctx.strokeStyle = "rgba(255,255,255,0.95)";
-    ctx.stroke();
-
-    ctx.save();
-    roundRectPath(ctx, cardX, cardY, m.cardW, m.cardH, m.radius);
-    ctx.clip();
-    const ir = img.naturalWidth / Math.max(1, img.naturalHeight);
-    const cr = m.cardW / m.cardH;
-    let dw = m.cardW;
-    let dh = m.cardH;
-    let dx = cardX;
-    let dy = cardY;
-    if (ir > cr) {
-      dw = m.cardH * ir;
-      dx = cardX + (m.cardW - dw) / 2;
-    } else {
-      dh = m.cardW / ir;
-      dy = cardY + (m.cardH - dh) / 2;
-    }
-    ctx.drawImage(img, dx, dy, dw, dh);
-
-    const fadeTop = cardY + m.cardH - m.captionH * 1.15;
-    const fade = ctx.createLinearGradient(0, fadeTop, 0, cardY + m.cardH);
-    fade.addColorStop(0, "rgba(255,253,248,0)");
-    fade.addColorStop(0.55, "rgba(255,253,248,0.45)");
-    fade.addColorStop(1, "rgba(255,253,248,0.92)");
-    ctx.fillStyle = fade;
-    ctx.fillRect(cardX, fadeTop, m.cardW, m.cardH - (fadeTop - cardY));
-
-    ctx.font = `600 ${m.font}px "DM Sans", sans-serif`;
-    ctx.fillStyle = "#1a2332";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
-    const inset = Math.round(m.cardW * 0.07);
-    const lines = wrapLabel(ctx, lm.name, m.cardW - inset * 2);
-    const textY = cardY + m.cardH - Math.round(m.cardW * 0.055);
-    lines.forEach((line, i) => {
-      ctx.fillText(line, cardX + inset, textY - (lines.length - 1 - i) * m.lineH);
-    });
-    ctx.restore();
+    paintMapLabel(ctx, wrapLabel(ctx, site.name, maxW), site.x, site.y + pinR + 5, m.siteFont, m.pinStroke);
   }
+  ctx.restore();
 }
 
-function pickExportPhotos(landmarks: Landmark[], max: number): Landmark[] {
-  return landmarks.filter((lm) => lm.photo).slice(0, max);
+function drawDriveLabels(
+  plan: TripPlan,
+  ctx: CanvasRenderingContext2D,
+  plot: Plotter,
+  canvas: HTMLCanvasElement,
+) {
+  const m = exportOverlayMetrics(canvas);
+  const font = m.chipFont;
+  ctx.save();
+  ctx.font = `600 ${font}px "DM Sans", sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (const leg of plan.driveLegs) {
+    if (leg.hours < 1 || leg.geometry.length < 2) continue;
+    const mid = leg.geometry[Math.floor(leg.geometry.length / 2)];
+    const { x, y } = plot.point(mid[0], mid[1]);
+    const tw = ctx.measureText(leg.label).width;
+    const padX = font * 0.55;
+    const padY = font * 0.34;
+    const w = tw + padX * 2;
+    const h = font + padY * 2;
+    roundRectPath(ctx, x - w / 2, y - h / 2, w, h, h / 2);
+    ctx.fillStyle = "rgba(255,253,248,0.92)";
+    ctx.fill();
+    ctx.lineWidth = Math.max(1.5, m.pinStroke * 0.45);
+    ctx.strokeStyle = "rgba(31,58,46,0.2)";
+    ctx.stroke();
+    ctx.fillStyle = "#1f3a2e";
+    ctx.fillText(leg.label, x, y + 0.5);
+  }
+  ctx.restore();
+}
+
+function paintMapLabel(
+  ctx: CanvasRenderingContext2D,
+  lines: string[],
+  x: number,
+  y: number,
+  font: number,
+  pinStroke: number,
+) {
+  const lineH = Math.round(font * 1.12);
+  ctx.lineJoin = "round";
+  ctx.miterLimit = 2;
+  ctx.lineWidth = Math.max(4, pinStroke * 1.4);
+  ctx.strokeStyle = "rgba(243,237,224,0.94)";
+  lines.forEach((line, i) => ctx.strokeText(line, x, y + i * lineH));
+  ctx.fillStyle = "rgba(26,35,50,0.9)";
+  lines.forEach((line, i) => ctx.fillText(line, x, y + i * lineH));
+}
+
+function normalizePlace(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function similarPlace(a: string, b: string) {
+  if (a === b) return true;
+  const shorter = a.length < b.length ? a : b;
+  const longer = a.length < b.length ? b : a;
+  return longer.startsWith(shorter) && longer.length - shorter.length < 10;
+}
+
+function hypot(dx: number, dy: number) {
+  return Math.sqrt(dx * dx + dy * dy);
 }
 
 type LiveCallout = {
@@ -1265,15 +1258,6 @@ function fitLabel(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
-}
-
-function tryLoadImage(src: string): Promise<HTMLImageElement | null> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    img.src = src;
-  });
 }
 
 function canvasScale(map: maplibregl.Map, canvas: HTMLCanvasElement) {

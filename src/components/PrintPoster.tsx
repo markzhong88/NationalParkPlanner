@@ -1,8 +1,8 @@
 import type { RefObject } from "react";
-import type { DayPlan, TripPlan } from "../types";
+import type { DayPlan, Landmark, TripPlan } from "../types";
 import { formatDayHeading } from "../lib/format";
 import { exportMapAspect } from "../lib/geo";
-import { POSTER_H, POSTER_W } from "../lib/exportPoster";
+import { POSTER_H } from "../lib/exportPoster";
 
 export function PrintPoster({
   plan,
@@ -14,16 +14,20 @@ export function PrintPoster({
   sheetRef: RefObject<HTMLDivElement | null>;
 }) {
   const dayCount = plan.days.length;
-  const columns = dayCount <= 5 ? dayCount : dayCount > 8 ? 3 : 2;
+  const columns = dayCount >= 9 ? 2 : 1;
   const rows = Math.ceil(dayCount / columns);
-  const compact = dayCount > 6;
-  const strip = dayCount <= 5;
+  const strip = dayCount <= 4;
+  const stack = columns === 1 && dayCount >= 6;
+  const dense = columns === 2;
+  const photos = posterPhotos(plan.landmarks, 3);
   const mapAspect = exportMapAspect(plan.bounds);
   const destinations = destinationLine(plan);
-  const quote = firstSentence(plan.styleNote);
+  const quote = dayCount <= 5 ? firstSentence(plan.styleNote) : "";
   const how = plan.flying ? `Flying via ${plan.gateway}` : `From ${plan.homeLabel}`;
   const titleLines = posterTitleLines(prettyTitle(plan.title));
-  const mapHeight = posterMapHeight(mapAspect, dayCount, columns, titleLines.length);
+  const railW = columns > 1 ? RAIL_W_SPLIT : RAIL_W;
+  const mapHeight = posterRailMapHeight(mapAspect, railW);
+  const photoHeight = posterPhotoImageHeight(mapHeight, photos.length, titleLines.length, Boolean(quote));
 
   return (
     <div ref={sheetRef} className="print-poster paper-grid" aria-hidden="true">
@@ -55,32 +59,58 @@ export function PrintPoster({
         {quote ? <p className="print-quote">{quote}</p> : null}
       </header>
 
-      <div className="print-map-mat">
-        <div
-          data-print-map-slot
-          className="print-map"
-          style={{ height: mapHeight, aspectRatio: "auto" }}
-        >
-          {mapImage ? (
-            <img data-print-map="true" src={mapImage} alt="" />
-          ) : (
-            <div className="print-map-fallback">Map</div>
-          )}
+      <div className={`print-body${columns > 1 ? " is-split" : ""}`}>
+        <div className="print-days-col">
+          <p className="print-days-label">The days</p>
+          <div
+            className={`print-days${strip ? " is-strip" : ""}${stack ? " is-stack" : ""}${dense ? " is-dense" : ""}`}
+            style={{
+              gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+              gridTemplateRows: `repeat(${rows}, minmax(${columns > 1 ? "min-content" : "0"}, ${columns > 1 ? "auto" : "1fr"}))`,
+              gridAutoFlow: columns > 1 ? "column" : "row",
+            }}
+          >
+            {plan.days.map((day) => (
+              <PrintDayCard
+                key={day.day}
+                day={day}
+                activityLimit={posterActivityLimit(dayCount)}
+              />
+            ))}
+          </div>
         </div>
-      </div>
 
-      <p className="print-days-label">The days</p>
-      <div
-        className={`print-days${strip ? " is-strip" : ""}`}
-        style={{
-          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-          gridTemplateRows: `repeat(${rows}, minmax(0, auto))`,
-          gridAutoFlow: "column",
-        }}
-      >
-        {plan.days.map((day) => (
-          <PrintDayCard key={day.day} day={day} compact={compact} strip={strip} />
-        ))}
+        <div className="print-rail">
+          <div className="print-map-mat">
+            <div
+              data-print-map-slot
+              className="print-map"
+              style={{ height: mapHeight, aspectRatio: "auto" }}
+            >
+              {mapImage ? (
+                <img data-print-map="true" src={mapImage} alt="" />
+              ) : (
+                <div className="print-map-fallback">Map</div>
+              )}
+            </div>
+          </div>
+
+          {photos.length ? (
+            <div className="print-photos">
+              {photos.map((lm) => (
+                <figure key={lm.id} className="print-photo">
+                  <img
+                    className="print-photo-img"
+                    src={lm.photo}
+                    alt=""
+                    style={{ height: photoHeight }}
+                  />
+                  <figcaption>{lm.name}</figcaption>
+                </figure>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <footer className="print-foot">
@@ -99,15 +129,12 @@ export function PrintPoster({
 
 function PrintDayCard({
   day,
-  compact,
-  strip,
+  activityLimit,
 }: {
   day: DayPlan;
-  compact: boolean;
-  strip: boolean;
+  activityLimit: number;
 }) {
-  const limit = strip ? 4 : compact ? 3 : 4;
-  const activities = day.activities.slice(0, limit);
+  const activities = day.activities.slice(0, activityLimit);
 
   return (
     <article className="print-day" style={{ borderLeftColor: day.color }}>
@@ -169,8 +196,8 @@ function posterTitleLines(pretty: string): string[] {
     const tail = ` ${suffix}`;
     if (!pretty.endsWith(tail)) continue;
     const head = pretty.slice(0, -tail.length);
-    const long = pretty.length > 32 || pretty.includes("&");
-    return long ? [head, suffix] : [pretty];
+    if (pretty.includes("&") || pretty.length > 42) return [head, suffix];
+    return [pretty];
   }
   return [pretty];
 }
@@ -179,14 +206,45 @@ function prettyTitle(value: string): string {
   return value.toLowerCase().replace(/\b([a-z])/g, (ch) => ch.toUpperCase());
 }
 
-function posterMapHeight(aspect: number, dayCount: number, columns: number, titleLines = 1) {
-  const innerW = POSTER_W - 56;
-  const natural = innerW / Math.max(0.5, aspect);
-  const rows = Math.ceil(dayCount / columns);
-  const rowH = dayCount <= 5 ? 188 : dayCount > 8 ? 172 : 144;
-  const header = 200 + Math.max(0, titleLines - 1) * 84;
-  const footer = 46;
-  const daysBlock = 24 + rows * rowH + Math.max(0, rows - 1) * 10;
-  const maxH = POSTER_H - 36 - header - footer - daysBlock;
-  return Math.round(Math.max(420, Math.min(natural, maxH, 720)));
+function posterActivityLimit(dayCount: number) {
+  if (dayCount <= 4) return 6;
+  if (dayCount <= 5) return 5;
+  if (dayCount <= 7) return 4;
+  if (dayCount === 8) return 3;
+  return 4;
+}
+
+function posterPhotos(landmarks: Landmark[], max: number): (Landmark & { photo: string })[] {
+  const withPhoto = landmarks.filter((lm): lm is Landmark & { photo: string } => Boolean(lm.photo));
+  if (withPhoto.length <= max) return withPhoto;
+  const picks: Landmark[] = [];
+  for (let i = 0; i < max; i++) {
+    const idx = Math.round((i * (withPhoto.length - 1)) / Math.max(1, max - 1));
+    const lm = withPhoto[idx];
+    if (lm && !picks.some((pick) => pick.id === lm.id)) picks.push(lm);
+  }
+  return picks;
+}
+
+/** Keep in sync with `.print-body` rail width and `.print-map-mat` padding. */
+const RAIL_W = 418;
+const RAIL_W_SPLIT = 360;
+const MAP_MAT_PAD = 7;
+
+function posterRailMapHeight(aspect: number, railW = RAIL_W) {
+  const mapW = railW - MAP_MAT_PAD * 2;
+  return Math.round(mapW / Math.max(0.5, aspect));
+}
+
+function posterPhotoImageHeight(
+  mapHeight: number,
+  photoCount: number,
+  titleLines: number,
+  hasQuote: boolean,
+) {
+  if (photoCount < 1) return 0;
+  const header = (hasQuote ? 196 : 164) + Math.max(0, titleLines - 1) * 64;
+  const body = POSTER_H - 36 - header - 46;
+  const leftover = body - (mapHeight + 14) - 10 - 8 * (photoCount - 1) - 19 * photoCount;
+  return Math.max(80, Math.floor(leftover / photoCount));
 }

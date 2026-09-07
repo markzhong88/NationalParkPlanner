@@ -38,11 +38,21 @@ export async function waitFrames(count = 2) {
 }
 
 export async function waitForImage(img: HTMLImageElement) {
-  if (img.complete && img.naturalWidth > 0) return;
-  await new Promise<void>((resolve, reject) => {
-    img.onload = () => resolve();
-    img.onerror = () => reject(new Error("Couldn’t load the map image."));
-  });
+  if (!img.src) return;
+  if (!img.complete) {
+    await new Promise<void>((resolve, reject) => {
+      img.addEventListener("load", () => resolve(), { once: true });
+      img.addEventListener("error", () => reject(new Error("Couldn’t load a poster image.")), {
+        once: true,
+      });
+    });
+  }
+  if (img.naturalWidth === 0) throw new Error("Couldn’t load a poster image.");
+  try {
+    await img.decode();
+  } catch {
+    /* already on screen */
+  }
 }
 
 export const POSTER_W = 1056;
@@ -66,7 +76,7 @@ export async function captureNodePng(node: HTMLElement, mapImage?: string) {
     width,
     height,
     pixelRatio: POSTER_RATIO,
-    cacheBust: true,
+    cacheBust: false,
     skipFonts: false,
     backgroundColor: "#f3ede0",
     style: POSTER_STYLE,
@@ -84,7 +94,7 @@ export async function captureNodeJpeg(node: HTMLElement, mapImage?: string) {
     height,
     quality: 0.95,
     pixelRatio: POSTER_RATIO,
-    cacheBust: true,
+    cacheBust: false,
     skipFonts: false,
     backgroundColor: "#f3ede0",
     style: POSTER_STYLE,
@@ -94,10 +104,10 @@ export async function captureNodeJpeg(node: HTMLElement, mapImage?: string) {
   return pasteMapOntoPoster(poster, mapImage, node, "jpeg");
 }
 
-function posterCaptureSize(node: HTMLElement) {
+function posterCaptureSize(_node: HTMLElement) {
   return {
     width: POSTER_W,
-    height: Math.max(POSTER_H, Math.ceil(node.scrollHeight)),
+    height: POSTER_H,
   };
 }
 
