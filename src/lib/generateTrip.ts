@@ -583,44 +583,70 @@ function nearby(a: Coordinates, b: Coordinates): boolean {
 
 function daysForLandmark(lm: { name: string; coord: Coordinates }, days: DayPlan[]): number[] {
   const name = lm.name.toLowerCase();
-  const skip = new Set([
-    "jackson",
-    "lake",
-    "river",
-    "park",
-    "national",
-    "grand",
-    "teton",
-    "mountain",
-    "snake",
-    "overlook",
-    "glacier",
-    "yellowstone",
-    "geyser",
-  ]);
-  const tokens = name.split(/[^a-z0-9]+/).filter((word) => word.length > 4 && !skip.has(word));
-  const hits = days.filter((d) => {
-    const blob = `${d.title} ${d.activities.join(" ")}`.toLowerCase();
-    if (blob.includes(name)) return true;
-    return tokens.some((word) => blob.includes(word));
-  });
-  if (hits.length) return hits.map((d) => d.day);
+  const named = days.filter((d) => dayMentionsLandmark(`${d.title} ${d.activities.join(" ")}`, name));
+  if (named.length) return named.map((d) => d.day);
   return daysForCoord(lm.coord, days);
 }
 
+const GENERIC_PLACE_WORDS = new Set([
+  "jackson",
+  "lake",
+  "river",
+  "park",
+  "national",
+  "grand",
+  "teton",
+  "mountain",
+  "snake",
+  "overlook",
+  "glacier",
+  "yellowstone",
+  "geyser",
+  "point",
+  "south",
+  "north",
+  "east",
+  "west",
+  "canyon",
+  "village",
+  "trail",
+  "falls",
+  "rock",
+  "rocks",
+  "view",
+  "viewpoint",
+  "rim",
+  "mesa",
+  "valley",
+  "creek",
+  "beach",
+  "island",
+  "pass",
+  "grove",
+  "forest",
+  "visitor",
+  "center",
+  "lodge",
+  "camp",
+  "road",
+  "drive",
+  "scenic",
+]);
+
+function dayMentionsLandmark(blob: string, name: string): boolean {
+  const text = blob.toLowerCase();
+  if (text.includes(name)) return true;
+  const tokens = name
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word.length > 4 && !GENERIC_PLACE_WORDS.has(word));
+  return tokens.length > 0 && tokens.every((word) => new RegExp(`\\b${word}\\b`).test(text));
+}
+
+const LANDMARK_DAY_MILES = 45;
+
 function daysForCoord(coord: Coordinates, days: DayPlan[]): number[] {
-  const close = days.filter((d) => nearby(d.coord, coord));
-  if (close.length) return close.map((d) => d.day);
-  let best = days[0];
-  let bestDist = Number.POSITIVE_INFINITY;
-  for (const d of days) {
-    const dist = haversineMiles(d.coord, coord);
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = d;
-    }
-  }
-  return best ? [best.day] : [];
+  const close = days.filter((d) => haversineMiles(d.coord, coord) <= LANDMARK_DAY_MILES);
+  return close.map((d) => d.day);
 }
 
 function waypointsFromDays(days: DayPlan[], origin: Coordinates): Coordinates[] {
