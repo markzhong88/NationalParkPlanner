@@ -218,6 +218,7 @@ export const ArtisticMap = forwardRef<ArtisticMapHandle, Props>(function Artisti
           callouts.push({ wrap, photo, leader, coord: lm.coord, preferred });
         }
       });
+      liveCalloutsByRoot.set(node, callouts);
 
       let layoutRaf = 0;
       const scheduleCalloutLayout = () => {
@@ -756,6 +757,8 @@ type LiveCallout = {
   preferred: [number, number];
 };
 
+const liveCalloutsByRoot = new WeakMap<HTMLElement, LiveCallout[]>();
+
 type CalloutLayoutOpt = {
   cardW: number;
   cardH: number;
@@ -841,19 +844,24 @@ function layoutLiveCallouts(callouts: LiveCallout[], map: maplibregl.Map) {
   const compact = isCompactMapView(node);
   const metrics = liveCalloutMetrics(compact);
   const photoIds = callouts
-    .map((item, i) => (item.wrap.classList.contains("is-missing-photo") ? -1 : i))
+    .map((item, i) =>
+      item.wrap.classList.contains("is-missing-photo") || item.wrap.classList.contains("is-photo-hidden")
+        ? -1
+        : i,
+    )
     .filter((i) => i >= 0);
   const keep = compact ? pickSpreadIds(photoIds, COMPACT_PHOTO_LIMIT) : new Set(photoIds);
   callouts.forEach((item, i) => {
-    item.wrap.classList.toggle(
-      "is-dot-only",
-      compact && !item.wrap.classList.contains("is-missing-photo") && !keep.has(i),
-    );
+    const hidden =
+      item.wrap.classList.contains("is-missing-photo") || item.wrap.classList.contains("is-photo-hidden");
+    item.wrap.classList.toggle("is-dot-only", compact && !hidden && !keep.has(i));
   });
   const pins = callouts.map((item) => map.project([item.coord.lng, item.coord.lat]));
   const skip = callouts.map(
     (item) =>
-      item.wrap.classList.contains("is-missing-photo") || item.wrap.classList.contains("is-dot-only"),
+      item.wrap.classList.contains("is-missing-photo") ||
+      item.wrap.classList.contains("is-dot-only") ||
+      item.wrap.classList.contains("is-photo-hidden"),
   );
   const offsets = layoutCalloutOffsets(
     pins,
@@ -1318,6 +1326,11 @@ function applyMapSelection(
     if (marker) marker.style.zIndex = on || isFrom ? "6" : "";
   });
 
+  root.querySelectorAll<HTMLElement>(".callout-wrap").forEach((wrap) => {
+    const days = parseDays(wrap.querySelector<HTMLElement>("[data-days]")?.dataset.days);
+    wrap.classList.toggle("is-photo-hidden", selectedDay == null || !days.includes(selectedDay));
+  });
+
   root.querySelectorAll<HTMLElement>(".drive-chip[data-day]").forEach((el) => {
     const on = selectedDay != null && el.dataset.day === String(selectedDay);
     el.classList.toggle("is-active", on);
@@ -1332,6 +1345,9 @@ function applyMapSelection(
     map.setPaintProperty("route-line", "line-opacity", selectedDay != null ? 0.28 : 0.95);
     map.setPaintProperty("route-glow", "line-opacity", selectedDay != null ? 0.12 : 0.45);
   }
+
+  const callouts = liveCalloutsByRoot.get(map.getContainer()) ?? liveCalloutsByRoot.get(root);
+  if (callouts) layoutLiveCallouts(callouts, map);
 
   if (!pan || selectedDay == null || !map.loaded()) return;
 

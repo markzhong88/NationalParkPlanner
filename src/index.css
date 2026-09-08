@@ -279,6 +279,12 @@ body {
   display: none;
 }
 
+.callout-wrap.is-photo-hidden .photo-callout,
+.callout-wrap.is-photo-hidden .callout-leader,
+.callout-wrap.is-photo-hidden .landmark-dot {
+  display: none;
+}
+
 .driving-card > summary::-webkit-details-marker {
   display: none;
 }

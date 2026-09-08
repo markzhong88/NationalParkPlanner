@@ -257,6 +257,9 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
             <p className="mb-2 px-0.5 text-[11px] leading-relaxed text-ink/40">
               Stays are a base, not a booking. We name a lodge only when rooms inside the park are scarce.
             </p>
+            <p className="mb-2 px-0.5 text-[11px] leading-relaxed text-ink/40">
+              Click a day to highlight that drive and its photos. Click again for the full route.
+            </p>
             <div className="relative">
               <div className="pointer-events-none absolute top-6 bottom-6 left-[27px] w-px bg-ink/10" />
               <div className="flex flex-col gap-1">
