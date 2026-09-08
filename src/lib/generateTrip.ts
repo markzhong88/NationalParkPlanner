@@ -46,12 +46,16 @@ export async function generateTrip(input: TripInput): Promise<TripPlan> {
   const family = input.kids > 0 || people >= 3;
   const start = parseISODate(input.startDate);
 
-  const stayAtGateway = park.stayAreas.some(
-    (area) =>
-      area.name.toLowerCase() === park.gateway.city.toLowerCase() ||
-      nearby(area.coord, park.gateway.coord),
+  const lastBlock = park.blocks[park.blocks.length - 1];
+  const lastArea = lastBlock
+    ? park.stayAreas.find((area) => area.id === lastBlock.areaId)
+    : undefined;
+  const lastStayIsGateway = Boolean(
+    lastArea &&
+      (lastArea.name.toLowerCase() === park.gateway.city.toLowerCase() ||
+        nearby(lastArea.coord, park.gateway.coord)),
   );
-  const gatewayReturnNight = flying && input.days >= 6 && !stayAtGateway;
+  const gatewayReturnNight = flying && input.days >= 6 && !lastStayIsGateway;
   const destinationNights = Math.max(1, input.days - 1 - (gatewayReturnNight ? 1 : 0));
   const allocations = allocateBlocks(park.blocks, destinationNights, family);
 
@@ -304,8 +308,7 @@ function buildDays(args: {
     const stay = night!;
     if (stay.isGatewayReturn) {
       const from = prevArea?.name ?? park.shortName;
-      const driveHours =
-        park.gateway.city === "Bozeman" ? (/jackson/i.test(from) ? 5 : 2.75) : 3.5;
+      const driveHours = gatewayReturnDriveHours(park, from);
       days.push({
         day: i + 1,
         date,
@@ -434,13 +437,22 @@ function departureActivities(
   ];
 }
 
+function gatewayReturnDriveHours(park: ParkProfile, fromName: string): number {
+  if (park.gateway.city === "Bozeman") return /jackson/i.test(fromName) ? 5 : 2.75;
+  if (park.gateway.city === "Phoenix") return 4.5;
+  if (park.gateway.city === "Las Vegas") return /grand canyon/i.test(fromName) ? 4.5 : 2.5;
+  if (park.gateway.city === "Kalispell") return 2.5;
+  if (park.gateway.city === "Knoxville") return 1.5;
+  return 3.5;
+}
+
 function gatewayReturnActivities(park: ParkProfile, family: boolean, fromName?: string): string[] {
+  const hours = gatewayReturnDriveHours(park, fromName ?? "");
   if (park.gateway.city === "Phoenix") {
     return [
-      family ? "Optional Grand Canyon sunrise before you roll south" : "South Rim sunrise, then the long drive south",
-      `Drive to Phoenix (${formatHours(3.75)})`,
-      family ? "Mesa Asian District — Mekong Plaza or H Mart for snacks" : "Coffee stop in Flagstaff",
-      family ? "Family dinner at Haidilao Hot Pot" : "Dinner near the airport",
+      family ? "Optional Grand Canyon sunrise, then roll south" : "South Rim sunrise, then the long drive south",
+      `Drive to Phoenix (${formatHours(hours)})`,
+      family ? "Airport hotel; easy dinner near PHX" : "Dinner near the airport",
     ];
   }
   if (park.gateway.city === "Las Vegas") {
