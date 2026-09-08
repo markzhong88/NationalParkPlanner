@@ -89,6 +89,10 @@ export function findCity(query: string): City | undefined {
   return matches[0];
 }
 
+export function cityLabel(city: City): string {
+  return `${city.name}, ${city.state}`;
+}
+
 /** Compact home for share URLs: unique airport (jfk) or `new-york-ny`. */
 export function homeUrlToken(home: string): string {
   const known = findCity(home);

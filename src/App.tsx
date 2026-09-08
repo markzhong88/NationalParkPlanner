@@ -13,6 +13,7 @@ import {
   type GenerateSource,
 } from "./lib/analytics";
 import { noteTripGenerated, resetFeedbackPrompt } from "./lib/tripFeedback";
+import { guessHome, readLastHome, writeLastHome } from "./lib/guessHome";
 import { clearTripUrl, tripFromSearch, writeTripUrl } from "./lib/tripUrl";
 import type { TripInput, TripPlan } from "./types";
 
@@ -29,7 +30,7 @@ const DEFAULT_TITLE = "Rimfold — National Park Trip Planner";
 
 export function App() {
   const [input, setInput] = useState<TripInput>({
-    home: "",
+    home: readLastHome(),
     parkId: "grand-canyon",
     adults: 2,
     kids: 2,
@@ -70,6 +71,7 @@ export function App() {
       if (showFeedback) resetFeedbackPrompt();
       setForceFeedback(showFeedback);
       writeTripUrl(next);
+      if (source === "form") writeLastHome(next.home);
       trackGenerateTrip(next, source, {
         flying: result.flying,
         parkName: result.parkName,
@@ -86,11 +88,22 @@ export function App() {
   };
 
   useEffect(() => {
-    if (bootstrapped.current) return;
     const parsed = tripFromSearch();
-    if (!parsed) return;
-    bootstrapped.current = true;
-    void run(parsed, "shared_link");
+    if (parsed) {
+      if (bootstrapped.current) return;
+      bootstrapped.current = true;
+      void run(parsed, "shared_link");
+      return;
+    }
+    if (readLastHome()) return;
+    let cancelled = false;
+    void guessHome().then((home) => {
+      if (cancelled || !home) return;
+      setInput((current) => (current.home.trim() ? current : { ...current, home }));
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (status === "generating") {
