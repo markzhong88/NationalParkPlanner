@@ -779,7 +779,7 @@ const LIVE_CARD_H = 118;
 const LIVE_ANCHOR_X = 74;
 const LIVE_ANCHOR_Y = 59;
 const COMPACT_MAP_MAX_PX = 1023;
-const COMPACT_PHOTO_LIMIT = 3;
+const DAY_PHOTO_LIMIT = 3;
 
 function isCompactMapWindow() {
   return typeof window !== "undefined" && window.matchMedia(`(max-width: ${COMPACT_MAP_MAX_PX}px)`).matches;
@@ -850,11 +850,11 @@ function layoutLiveCallouts(callouts: LiveCallout[], map: maplibregl.Map) {
         : i,
     )
     .filter((i) => i >= 0);
-  const keep = compact ? pickSpreadIds(photoIds, COMPACT_PHOTO_LIMIT) : new Set(photoIds);
+  const keep = pickSpreadIds(photoIds, DAY_PHOTO_LIMIT);
   callouts.forEach((item, i) => {
     const hidden =
       item.wrap.classList.contains("is-missing-photo") || item.wrap.classList.contains("is-photo-hidden");
-    item.wrap.classList.toggle("is-dot-only", compact && !hidden && !keep.has(i));
+    item.wrap.classList.toggle("is-dot-only", !hidden && !keep.has(i));
   });
   const pins = callouts.map((item) => map.project([item.coord.lng, item.coord.lat]));
   const skip = callouts.map(

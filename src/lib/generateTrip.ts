@@ -597,7 +597,25 @@ function daysForLandmark(lm: { name: string; coord: Coordinates }, days: DayPlan
   const name = lm.name.toLowerCase();
   const named = days.filter((d) => dayMentionsLandmark(`${d.title} ${d.activities.join(" ")}`, name));
   if (named.length) return named.map((d) => d.day);
-  return daysForCoord(lm.coord, days);
+
+  const midTrip = days.filter((d) => !isEdgeTravelDay(d, days.length));
+  let best: DayPlan | undefined;
+  let bestMiles = 20;
+  for (const d of midTrip) {
+    const miles = haversineMiles(d.coord, lm.coord);
+    if (miles < bestMiles) {
+      bestMiles = miles;
+      best = d;
+    }
+  }
+  return best ? [best.day] : [];
+}
+
+function isEdgeTravelDay(day: DayPlan, totalDays: number): boolean {
+  if (day.day === 1 || day.day === totalDays) return true;
+  if (day.title === "Fly home" || /^fly /i.test(day.title)) return true;
+  if (day.route && /^fly /i.test(day.route)) return true;
+  return false;
 }
 
 const GENERIC_PLACE_WORDS = new Set([
@@ -648,17 +666,13 @@ const GENERIC_PLACE_WORDS = new Set([
 function dayMentionsLandmark(blob: string, name: string): boolean {
   const text = blob.toLowerCase();
   if (text.includes(name)) return true;
-  const tokens = name
-    .split(/[^a-z0-9]+/)
-    .filter((word) => word.length > 4 && !GENERIC_PLACE_WORDS.has(word));
+  const parts = name.split(/[^a-z0-9]+/).filter(Boolean);
+  if (parts.length >= 2) {
+    const tail = parts.slice(-2).join(" ");
+    if (tail.length >= 8 && text.includes(tail)) return true;
+  }
+  const tokens = parts.filter((word) => word.length > 4 && !GENERIC_PLACE_WORDS.has(word));
   return tokens.length > 0 && tokens.every((word) => new RegExp(`\\b${word}\\b`).test(text));
-}
-
-const LANDMARK_DAY_MILES = 45;
-
-function daysForCoord(coord: Coordinates, days: DayPlan[]): number[] {
-  const close = days.filter((d) => haversineMiles(d.coord, coord) <= LANDMARK_DAY_MILES);
-  return close.map((d) => d.day);
 }
 
 function waypointsFromDays(days: DayPlan[], origin: Coordinates): Coordinates[] {
