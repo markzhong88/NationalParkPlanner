@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { TripPlan } from "../types";
 import { DayCard } from "./DayCard";
@@ -21,6 +21,16 @@ import {
 } from "../lib/exportPoster";
 import { copyTripText } from "../lib/tripText";
 import { trackCopyTrip, trackDownload } from "../lib/analytics";
+import { encodeTripToken } from "../lib/tripUrl";
+import {
+  applyTripEdits,
+  emptyTripEdits,
+  hasTripEdits,
+  patchDayEdit,
+  patchTripEdits,
+  readTripEdits,
+  writeTripEdits,
+} from "../lib/tripEdits";
 import {
   canOfferFeedback,
   feedbackForced,
@@ -38,12 +48,15 @@ type Props = {
 };
 
 export function TripPoster({ plan, trip, returning, forceFeedback = false, onReset }: Props) {
+  const token = encodeTripToken(trip);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [mapImage, setMapImage] = useState<string | null>(null);
   const [busy, setBusy] = useState<"png" | "pdf" | "text" | null>(null);
   const [copied, setCopied] = useState<"copied" | "downloaded" | false>(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<FeedbackSource | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [edits, setEdits] = useState(() => readTripEdits(token));
   const skipScroll = useRef(true);
   const feedbackTimer = useRef<number>(0);
   const idleArmed = useRef(false);
@@ -51,6 +64,15 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
   const offerFeedbackRef = useRef<(source: FeedbackSource) => void>(() => undefined);
   const mapRef = useRef<ArtisticMapHandle>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const displayPlan = useMemo(() => applyTripEdits(plan, edits), [plan, edits]);
+
+  useEffect(() => {
+    setEdits(readTripEdits(token));
+  }, [token]);
+
+  useEffect(() => {
+    writeTripEdits(token, edits);
+  }, [token, edits]);
 
   useEffect(() => {
     if (skipScroll.current) {
@@ -122,6 +144,14 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
   };
   offerFeedbackRef.current = offerFeedback;
 
+  const originalDay = (day: number) => plan.days.find((item) => item.day === day) ?? plan.days[0];
+
+  const changeDay = (day: number, patch: Parameters<typeof patchDayEdit>[2]) => {
+    setEdits((current) => patchDayEdit(current, day, patch, originalDay(day)));
+  };
+
+  const customized = hasTripEdits(edits);
+
   const pickDay = (day: number) => {
     setSelectedDay((current) => (current === day ? null : day));
     if (window.matchMedia("(max-width: 1023px)").matches) {
@@ -160,14 +190,14 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
     try {
       const { sheet, mapImage: shot } = await prepareSheet();
       if (kind === "png") {
-        downloadDataUrl(await captureNodePng(sheet, shot), posterFilename(plan, "png"));
-        trackDownload("png", trip, plan.parkName);
+        downloadDataUrl(await captureNodePng(sheet, shot), posterFilename(displayPlan, "png"));
+        trackDownload("png", trip, displayPlan.parkName);
         offerFeedback("save");
         return;
       }
       const jpeg = await captureNodeJpeg(sheet, shot);
-      downloadBlob(await jpegDataUrlToPdf(jpeg), posterFilename(plan, "pdf"));
-      trackDownload("pdf", trip, plan.parkName);
+      downloadBlob(await jpegDataUrlToPdf(jpeg), posterFilename(displayPlan, "pdf"));
+      trackDownload("pdf", trip, displayPlan.parkName);
       offerFeedback("save");
     } catch (err) {
       setExportError(err instanceof Error ? err.message : "Couldn’t export the poster.");
@@ -182,9 +212,9 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
     setExportError(null);
     clearFeedbackTimer();
     try {
-      const result = await copyTripText(plan);
+      const result = await copyTripText(displayPlan);
       setCopied(result);
-      trackCopyTrip(trip, plan.parkName, result);
+      trackCopyTrip(trip, displayPlan.parkName, result);
       offerFeedback("save");
       window.setTimeout(() => setCopied(false), 2200);
     } catch {
@@ -209,6 +239,18 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
               RIMFOLD
             </button>
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                aria-pressed={editing}
+                onClick={() => setEditing((value) => !value)}
+                className={`rounded-full px-3 py-1.5 text-[12px] font-medium transition ${
+                  editing
+                    ? "bg-pine text-[#f4efe4]"
+                    : "bg-white/80 text-pine ring-1 ring-pine/15 hover:bg-white"
+                }`}
+              >
+                {editing ? "Done editing" : "Customize trip"}
+              </button>
               <SaveTripControl
                 busy={busy}
                 copied={copied}
@@ -232,44 +274,108 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
 
           <header className="px-0.5">
             <h1 className="font-serif text-[34px] leading-[1.05] text-pine">
-              {prettyTitle(plan.title)}
+              {prettyTitle(displayPlan.title)}
             </h1>
-            <p className="mt-3 text-[13px] leading-relaxed text-ink-soft">{plan.subtitle}</p>
+            <p className="mt-3 text-[13px] leading-relaxed text-ink-soft">{displayPlan.subtitle}</p>
             <p className="mt-3 text-[12px] tracking-wide text-ink/55">
-              {plan.dateRange}
+              {displayPlan.dateRange}
               <span className="mx-2 text-gold">·</span>
-              {plan.travelers}
+              {displayPlan.travelers}
             </p>
-            <p className="mt-4 text-[13px] leading-relaxed text-ink-soft">{plan.styleNote}</p>
+            {displayPlan.flightNote || displayPlan.rentalNote ? (
+              <p className="mt-2 text-[12px] leading-relaxed text-pine/80">
+                {[displayPlan.flightNote, displayPlan.rentalNote].filter(Boolean).join(" · ")}
+              </p>
+            ) : null}
+            <p className="mt-4 text-[13px] leading-relaxed text-ink-soft">{displayPlan.styleNote}</p>
           </header>
 
-          {plan.cost ? (
+          {editing || customized ? (
+            <div className="no-print rounded-xl bg-white/70 px-4 py-3 ring-1 ring-ink/8">
+              <p className="font-display text-[11px] tracking-[0.2em] text-gold">YOUR BOOKINGS</p>
+              <p className="mt-1 text-[11px] text-ink/45">Typed onto the poster — not a reservation.</p>
+              {editing ? (
+                <div className="mt-3 grid gap-2">
+                  <label className="block">
+                    <span className="text-[11px] font-medium text-ink/55">Flight</span>
+                    <input
+                      value={edits.flight ?? ""}
+                      onChange={(e) => setEdits((current) => patchTripEdits(current, { flight: e.target.value }))}
+                      placeholder={
+                        displayPlan.flying
+                          ? `e.g. AA 1841 ${displayPlan.homeAirport} → ${displayPlan.gatewayAirport}`
+                          : "e.g. driving — or a one-way into the gateway"
+                      }
+                      className="mt-1 w-full rounded-lg bg-white px-2.5 py-1.5 text-[13px] text-ink ring-1 ring-ink/10 outline-none focus:ring-pine/30"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-medium text-ink/55">Rental car</span>
+                    <input
+                      value={edits.rental ?? ""}
+                      onChange={(e) => setEdits((current) => patchTripEdits(current, { rental: e.target.value }))}
+                      placeholder={`e.g. Hertz SUV at ${displayPlan.gatewayAirport}`}
+                      className="mt-1 w-full rounded-lg bg-white px-2.5 py-1.5 text-[13px] text-ink ring-1 ring-ink/10 outline-none focus:ring-pine/30"
+                    />
+                  </label>
+                </div>
+              ) : (
+                <ul className="mt-2 space-y-1 text-[13px] text-ink">
+                  {displayPlan.flightNote ? <li>Flight · {displayPlan.flightNote}</li> : null}
+                  {displayPlan.rentalNote ? <li>Car · {displayPlan.rentalNote}</li> : null}
+                </ul>
+              )}
+              {customized ? (
+                <button
+                  type="button"
+                  onClick={() => setEdits(emptyTripEdits())}
+                  className="mt-3 text-[11px] font-medium text-pine/80 underline decoration-gold/60 underline-offset-4"
+                >
+                  Reset to the original plan
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          {displayPlan.cost ? (
             <div className="no-print">
-              <CostCard cost={plan.cost} />
+              <CostCard
+                cost={displayPlan.cost}
+                flightNote={displayPlan.flightNote}
+                rentalNote={displayPlan.rentalNote}
+              />
             </div>
           ) : null}
 
           <section>
             <div className="mb-2 flex items-baseline justify-between px-0.5">
               <p className="font-display text-[11px] tracking-[0.2em] text-gold">ITINERARY</p>
-              <p className="text-[11px] text-ink/40">{plan.days.length} days</p>
+              <p className="text-[11px] text-ink/40">{displayPlan.days.length} days</p>
             </div>
             <p className="mb-2 px-0.5 text-[11px] leading-relaxed text-ink/40">
-              Stays are a base, not a booking. We name a lodge only when rooms inside the park are scarce.
+              {editing
+                ? "Change a title, drop a hike, or put your hotel on the night. The poster updates when you save."
+                : "Stays are a base, not a booking. We name a lodge only when rooms inside the park are scarce."}
             </p>
-            <p className="mb-2 px-0.5 text-[11px] leading-relaxed text-ink/40">
-              Click a day to highlight that drive and its photos. Click again for the full route.
-            </p>
+            {editing ? null : (
+              <p className="mb-2 px-0.5 text-[11px] leading-relaxed text-ink/40">
+                Click a day to highlight that drive and its photos. Click again for the full route.
+              </p>
+            )}
             <div className="relative">
               <div className="pointer-events-none absolute top-6 bottom-6 left-[27px] w-px bg-ink/10" />
               <div className="flex flex-col gap-1">
-                {plan.days.map((day) => (
+                {displayPlan.days.map((day) => (
                   <DayCard
                     key={day.day}
                     day={day}
                     selected={selectedDay === day.day}
                     onSelect={() => pickDay(day.day)}
-                    places={plan.landmarks
+                    editing={editing}
+                    onChangeHeading={(value) => changeDay(day.day, { heading: value })}
+                    onChangeStay={(value) => changeDay(day.day, { stay: value })}
+                    onChangeActivities={(value) => changeDay(day.day, { activities: value })}
+                    places={displayPlan.landmarks
                       .filter((lm) => lm.days?.includes(day.day))
                       .map((lm) => lm.name)}
                   />
@@ -295,14 +401,14 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
           </p>
         </aside>
         <section className="min-h-[560px] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)]">
-          <ArtisticMap ref={mapRef} plan={plan} selectedDay={selectedDay} onSelectDay={pickDay} />
+          <ArtisticMap ref={mapRef} plan={displayPlan} selectedDay={selectedDay} onSelectDay={pickDay} />
         </section>
       </div>
-      <PrintPoster plan={plan} mapImage={mapImage} sheetRef={sheetRef} />
+      <PrintPoster plan={displayPlan} mapImage={mapImage} sheetRef={sheetRef} />
       {feedback ? (
         <TripFeedback
           trip={trip}
-          parkName={plan.parkName}
+          parkName={displayPlan.parkName}
           returning={returning}
           source={feedback}
           testing={forceFeedback || feedbackForced()}

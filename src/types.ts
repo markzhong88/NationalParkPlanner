@@ -114,6 +114,9 @@ export type TripPlan = {
   startPoint: MapEndpoint;
   endPoint: MapEndpoint;
   cost?: CostEstimate;
+  /** Typed onto this trip — not a booking. */
+  flightNote?: string;
+  rentalNote?: string;
 };
 
 export type City = {

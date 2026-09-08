@@ -12,6 +12,8 @@ export function formatTripText(plan: TripPlan): string {
     "",
     plan.styleNote,
   ];
+  if (plan.flightNote) lines.push(`Flight: ${plan.flightNote}`);
+  if (plan.rentalNote) lines.push(`Rental: ${plan.rentalNote}`);
 
   if (plan.cost) {
     lines.push("", ...costLines(plan.cost));
@@ -23,7 +25,7 @@ export function formatTripText(plan: TripPlan): string {
     const heading = day.route || day.title;
     lines.push(`Day ${day.day} — ${formatDayHeading(day.date)}`);
     lines.push(heading);
-    for (const item of day.activities) {
+    for (const item of day.activities.map((line) => line.trim()).filter(Boolean)) {
       lines.push(`- ${item}`);
     }
     const places = plan.landmarks

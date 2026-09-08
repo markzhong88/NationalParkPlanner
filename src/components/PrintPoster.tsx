@@ -23,11 +23,18 @@ export function PrintPoster({
   const mapAspect = exportMapAspect(plan.bounds);
   const destinations = destinationLine(plan);
   const quote = dayCount <= 5 ? firstSentence(plan.styleNote) : "";
+  const bookings = [plan.flightNote, plan.rentalNote].filter(Boolean).join("  ·  ");
   const how = plan.flying ? `Flying via ${plan.gateway}` : `From ${plan.homeLabel}`;
   const titleLines = posterTitleLines(prettyTitle(plan.title));
   const railW = columns > 1 ? RAIL_W_SPLIT : RAIL_W;
   const mapHeight = posterRailMapHeight(mapAspect, railW);
-  const photoHeight = posterPhotoImageHeight(mapHeight, photos.length, titleLines.length, Boolean(quote));
+  const photoHeight = posterPhotoImageHeight(
+    mapHeight,
+    photos.length,
+    titleLines.length,
+    Boolean(quote),
+    Boolean(bookings),
+  );
 
   return (
     <div ref={sheetRef} className="print-poster paper-grid" aria-hidden="true">
@@ -57,6 +64,7 @@ export function PrintPoster({
           <span>{how}</span>
         </p>
         {quote ? <p className="print-quote">{quote}</p> : null}
+        {bookings ? <p className="print-bookings">{bookings}</p> : null}
       </header>
 
       <div className={`print-body${columns > 1 ? " is-split" : ""}`}>
@@ -137,7 +145,7 @@ function PrintDayCard({
   day: DayPlan;
   activityLimit: number;
 }) {
-  const activities = day.activities.slice(0, activityLimit);
+  const activities = day.activities.map((item) => item.trim()).filter(Boolean).slice(0, activityLimit);
 
   return (
     <article className="print-day" style={{ borderLeftColor: day.color }}>
@@ -256,9 +264,10 @@ function posterPhotoImageHeight(
   photoCount: number,
   titleLines: number,
   hasQuote: boolean,
+  hasBookings = false,
 ) {
   if (photoCount < 1) return 0;
-  const header = (hasQuote ? 196 : 164) + Math.max(0, titleLines - 1) * 64;
+  const header = (hasQuote ? 196 : 164) + Math.max(0, titleLines - 1) * 64 + (hasBookings ? 24 : 0);
   const body = POSTER_H - 36 - header - 46;
   const leftover = body - (mapHeight + 14) - 10 - 8 * (photoCount - 1) - 21 * photoCount;
   return Math.max(80, Math.floor(leftover / photoCount));

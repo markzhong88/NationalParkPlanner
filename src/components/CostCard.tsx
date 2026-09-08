@@ -1,14 +1,22 @@
 import type { CostEstimate } from "../types";
 import { usd } from "../lib/estimateCost";
 
-export function CostCard({ cost }: { cost: CostEstimate }) {
+export function CostCard({
+  cost,
+  flightNote,
+  rentalNote,
+}: {
+  cost: CostEstimate;
+  flightNote?: string;
+  rentalNote?: string;
+}) {
   const mid = Math.round((cost.totalLow + cost.totalHigh) / 2);
   const rows = [
-    ["Flights", cost.flights],
-    ["Hotels", cost.hotels],
-    ["Rental car", cost.rental],
-    ["Food", cost.food],
-    ["Park & extras", cost.extras],
+    ["Flights", cost.flights, flightNote],
+    ["Hotels", cost.hotels, undefined],
+    ["Rental car", cost.rental, rentalNote],
+    ["Food", cost.food, undefined],
+    ["Park & extras", cost.extras, undefined],
   ] as const;
 
   return (
@@ -23,10 +31,13 @@ export function CostCard({ cost }: { cost: CostEstimate }) {
         <p className="font-serif text-[28px] leading-none text-pine">{usd(mid)}</p>
       </div>
       <ul className="mt-3 space-y-1.5 border-t border-ink/8 pt-3">
-        {rows.map(([label, line]) => (
+        {rows.map(([label, line, note]) => (
           <li key={label} className="flex items-baseline justify-between gap-3 text-[12px]">
-            <span className="text-ink-soft">{label}</span>
-            <span className="font-medium text-ink">
+            <span className="min-w-0 text-ink-soft">
+              {label}
+              {note ? <span className="mt-0.5 block truncate text-[11px] text-ink/55">{note}</span> : null}
+            </span>
+            <span className="shrink-0 font-medium text-ink">
               {line.low === 0 && line.high === 0 ? "—" : `${usd(line.low)}–${usd(line.high)}`}
             </span>
           </li>
