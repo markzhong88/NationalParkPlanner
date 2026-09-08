@@ -223,13 +223,7 @@ function layout(opts: {
     gtag("js", new Date());
     gtag("config", "${GA}");
   </script>
-  <script>
-    var ahrefs_analytics_script = document.createElement("script");
-    ahrefs_analytics_script.async = true;
-    ahrefs_analytics_script.src = "https://analytics.ahrefs.com/analytics.js";
-    ahrefs_analytics_script.setAttribute("data-key", "9/Dz6lvvNsgH5rTRNFNqMg");
-    document.getElementsByTagName("head")[0].appendChild(ahrefs_analytics_script);
-  </script>
+  <script src="https://analytics.ahrefs.com/analytics.js" data-key="9/Dz6lvvNsgH5rTRNFNqMg" async></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${esc(opts.title)}</title>
   <meta name="description" content="${esc(opts.description)}" />
