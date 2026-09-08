@@ -8,10 +8,13 @@ import {
   renderClassicTripPage,
   renderDaysHub,
   renderDaysParkPage,
+  renderTogetherHub,
+  renderTogetherParkPage,
   renderRobots,
   renderSitemap,
 } from "./src/lib/seoPages";
 import { PARKS_BY_POPULARITY } from "./src/data/parks";
+import { parksThatPair } from "./src/lib/twoParkLoops";
 
 const SITE = "https://rimfold.com";
 
@@ -39,6 +42,15 @@ export function classicTripPages(): Plugin {
         const html = renderDaysParkPage(park.id);
         if (!html) continue;
         const dir = join(dist, "days", park.id);
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(join(dir, "index.html"), html);
+      }
+      mkdirSync(join(dist, "together"), { recursive: true });
+      writeFileSync(join(dist, "together", "index.html"), renderTogetherHub());
+      for (const park of parksThatPair()) {
+        const html = renderTogetherParkPage(park.id);
+        if (!html) continue;
+        const dir = join(dist, "together", park.id);
         mkdirSync(dir, { recursive: true });
         writeFileSync(join(dir, "index.html"), html);
       }

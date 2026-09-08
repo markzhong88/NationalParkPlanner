@@ -43,6 +43,12 @@ export function Landing({ value, onChange, onSubmit, onDemo }: Props) {
           >
             How many days
           </a>
+          <a
+            href="/together/"
+            className="text-[12px] font-medium text-[#f4efe4]/80 underline decoration-gold/50 underline-offset-4 transition hover:text-[#f4efe4]"
+          >
+            Two parks
+          </a>
           <FeedbackLink className="text-[12px] font-medium text-[#f4efe4]/80 underline decoration-gold/50 underline-offset-4 transition hover:text-[#f4efe4]" />
         </div>
       </header>
@@ -63,12 +69,19 @@ export function Landing({ value, onChange, onSubmit, onDemo }: Props) {
             >
               how many days you need
             </a>
-            , or start from a{" "}
+            , start from a{" "}
             <a
               href="/trips/"
               className="text-[#f4efe4] underline decoration-gold/60 underline-offset-4"
             >
               classic national park road trip
+            </a>
+            , or see{" "}
+            <a
+              href="/together/"
+              className="text-[#f4efe4] underline decoration-gold/60 underline-offset-4"
+            >
+              which parks share a drive
             </a>
             .
           </p>

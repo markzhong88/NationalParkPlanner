@@ -6,13 +6,21 @@ import {
   type ClassicOutline,
   type ClassicTrip,
 } from "../data/classicTrips";
-import { PARKS_BY_POPULARITY } from "../data/parks";
+import { getPark, PARKS_BY_POPULARITY } from "../data/parks";
 import {
   allParkDaysGuides,
   parkDaysGuide,
   type LengthPlan,
   type ParkDaysGuide,
 } from "./howManyDays";
+import {
+  allParkPairGuides,
+  parkPairGuide,
+  parksThatPair,
+  uniqueTwoParkLoops,
+  type ParkPairGuide,
+  type TwoParkLoop,
+} from "./twoParkLoops";
 
 const FONTS =
   "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Oswald:wght@500;600&display=swap";
@@ -38,26 +46,57 @@ export function matchClassicPath(urlPath: string): string | null {
     const page = renderDaysParkPage(daysMatch[1]);
     return page ?? renderDaysHub();
   }
+  if (path === "/together") return renderTogetherHub();
+  const togetherMatch = path.match(/^\/together\/([^/]+)$/);
+  if (togetherMatch) {
+    const page = renderTogetherParkPage(togetherMatch[1]);
+    return page ?? renderTogetherHub();
+  }
   return null;
 }
 
 export function renderClassicHub(): string {
   const cards = classicTripCards();
+  const onePark = cards.filter(({ trip }) => !trip.alsoParkId);
+  const twoPark = cards.filter(({ trip }) => trip.alsoParkId);
   return layout({
     path: "/trips/",
     title: "National park road trips — Rimfold",
     description:
-      "Plan a national park road trip with a day-by-day itinerary, overnight towns, and a printable map. Classic loops for Grand Canyon, Zion, Yellowstone, Yosemite, the Smokies, and Glacier.",
+      "Plan a national park road trip with a day-by-day itinerary, overnight towns, and a printable map. Classic one-park weeks plus two-park loops: Zion and Grand Canyon, Yellowstone and Grand Teton, Yosemite and Sequoia.",
     jsonLd: hubJsonLd(),
     body: `
       <p class="kicker">National park road trips</p>
       <h1>National park road trips you can actually drive.</h1>
-      <p class="lede">A national park road trip should have overnight towns, a sane daily pace, and a map you can fold. These are the loops people actually drive: seven days in Grand Canyon, Zion, Yellowstone, Yosemite, the Smokies, or Glacier — plus an 8-day Zion and Grand Canyon circuit.</p>
+      <p class="lede">A national park road trip should have overnight towns, a sane daily pace, and a map you can fold. Start with one park for a week, or pick two that share a real drive — not a 12-hour interstate.</p>
       <p class="lede">Each itinerary starts from a gateway city. Open one for the days and the map, or generate a trip from your own home.</p>
+      <h2>Two parks, one drive</h2>
       <ul class="cards">
-        ${cards
-          .map(
-            ({ trip, parkName, blurb, photos }) => `
+        ${twoPark.map((card) => classicCard(card)).join("")}
+      </ul>
+      <p class="cta-row">
+        <a class="btn" href="/together/">Which parks can I combine?</a>
+      </p>
+      <h2>One park, a full week</h2>
+      <ul class="cards">
+        ${onePark.map((card) => classicCard(card)).join("")}
+      </ul>
+      <p class="cta-row">
+        <a class="btn" href="/">Plan a national park road trip from home</a>
+        <a class="btn-quiet" href="/days/">How many days do you need?</a>
+      </p>
+      <p class="foot-link"><a href="/">Or pick a different park and days →</a></p>
+    `,
+  });
+}
+
+function classicCard({
+  trip,
+  parkName,
+  blurb,
+  photos,
+}: ReturnType<typeof classicTripCards>[number]): string {
+  return `
           <li>
             <a class="card" href="${esc(`/trips/${trip.slug}/`)}">
               ${
@@ -77,17 +116,7 @@ export function renderClassicHub(): string {
                 <p class="card-blurb">${esc(blurb)}</p>
               </div>
             </a>
-          </li>`,
-          )
-          .join("")}
-      </ul>
-      <p class="cta-row">
-        <a class="btn" href="/">Plan a national park road trip from home</a>
-        <a class="btn-quiet" href="/days/">How many days do you need?</a>
-      </p>
-      <p class="foot-link"><a href="/">Or pick a different park and days →</a></p>
-    `,
-  });
+          </li>`;
 }
 
 export function renderClassicTripPage(trip: ClassicTrip): string {
@@ -107,8 +136,10 @@ export function renderSitemap(origin: string): string {
     "/",
     "/trips/",
     "/days/",
+    "/together/",
     ...CLASSIC_TRIPS.map((trip) => `/trips/${trip.slug}/`),
     ...PARKS_BY_POPULARITY.map((park) => `/days/${park.id}/`),
+    ...parksThatPair().map((park) => `/together/${park.id}/`),
   ];
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -322,6 +353,239 @@ function daysParkJsonLd(guide: ParkDaysGuide, rec: LengthPlan): string {
   });
 }
 
+export function renderTogetherHub(): string {
+  const loops = uniqueTwoParkLoops();
+  const guides = allParkPairGuides();
+  return layout({
+    path: "/together/",
+    title: "Two national parks on one trip — Rimfold",
+    description:
+      "Which national parks can you visit on the same road trip? Zion and Grand Canyon, Yellowstone and Grand Teton, Yosemite and Sequoia — pairs that share a real drive, with days and overnight towns.",
+    jsonLd: togetherHubJsonLd(loops),
+    body: `
+      <p class="kicker">Two parks, one drive</p>
+      <h1>Can you visit two national parks on one trip?</h1>
+      <p class="lede">Yes — if they share a drive you would actually do between breakfast and dinner. Zion to the Grand Canyon is 4.5 hours. Jackson to Old Faithful is not a weekend add-on to Yosemite. Pick a pair, see the overnight towns, then open the loop.</p>
+      <h2>Classic two-park loops</h2>
+      <ul class="cards">
+        ${loops
+          .filter((loop) => loop.classic)
+          .map((loop) => togetherCard(loop))
+          .join("")}
+      </ul>
+      <h2>Every pair we will route</h2>
+      <ul class="park-index">
+        ${guides
+          .map(
+            (guide) => `
+          <li>
+            <a href="${esc(`/together/${guide.park.id}/`)}">
+              <span>${esc(guide.park.shortName)}</span>
+              <span>${esc(togetherIndexLabel(guide))}</span>
+            </a>
+          </li>`,
+          )
+          .join("")}
+      </ul>
+      <h2>Common questions</h2>
+      <div class="faq">
+        <h3>Can I do Zion and Grand Canyon in one trip?</h3>
+        <p>Yes. It is a 4.5-hour drive. Budget 8 days from Las Vegas so Zion (and Bryce) and the South Rim each get real mornings. <a href="/trips/zion-grand-canyon-8-day/">Open the 8-day loop</a>.</p>
+        <h3>Yellowstone and Grand Teton?</h3>
+        <p>Those two are the easiest pair in the system — about 2.5 hours. A week from Bozeman covers Old Faithful, then Jenny Lake. <a href="/trips/yellowstone-grand-teton-7-day/">Open the 7-day loop</a>.</p>
+        <h3>What about the Mighty 5 in one week?</h3>
+        <p>Don’t. Five Utah parks is a windshield tour. Pick two that share a drive — Zion and Bryce, or Arches and Capitol Reef — and leave the rest for the next trip.</p>
+        <h3>Glacier and Yellowstone?</h3>
+        <p>That is a long interstate, not a same-loop drive. We will not stitch them. Do Glacier from Kalispell, or Yellowstone from Bozeman or Jackson.</p>
+      </div>
+      <p class="cta-row">
+        <a class="btn" href="/">Generate a two-park trip from home</a>
+        <a class="btn-quiet" href="/trips/">All classic trips</a>
+      </p>
+    `,
+  });
+}
+
+export function renderTogetherParkPage(parkId: string): string | null {
+  const guide = parkPairGuide(parkId);
+  if (!guide) return null;
+  const pairParks = parksThatPair();
+  return layout({
+    path: `/together/${guide.park.id}/`,
+    title: `Parks to combine with ${guide.park.shortName} — Rimfold`,
+    description: togetherParkDescription(guide),
+    jsonLd: togetherParkJsonLd(guide),
+    body: `
+      <nav class="crumbs"><a href="/together/">Two parks</a> / ${esc(guide.park.shortName)}</nav>
+      <p class="kicker">${esc(guide.park.state)}</p>
+      <h1>What can you add to ${esc(guide.park.shortName)}?</h1>
+      <p class="lede">${esc(togetherParkLede(guide))}</p>
+      <label class="jump">
+        <span>Park</span>
+        <select onchange="location.href='/together/'+this.value+'/'">
+          ${pairParks
+            .map(
+              (park) =>
+                `<option value="${esc(park.id)}"${park.id === guide.park.id ? " selected" : ""}>${esc(park.shortName)} — ${esc(park.state)}</option>`,
+            )
+            .join("")}
+        </select>
+      </label>
+      ${
+        guide.bakedIn
+          ? `<p class="note">${esc(guide.bakedIn)} That is already on the one-park loop — not a second park to add.</p>`
+          : ""
+      }
+      ${
+        guide.loops.length
+          ? `<div class="compare pairs">${guide.loops.map((loop) => pairLengthCard(loop, guide.park.id)).join("")}</div>`
+          : `<p class="note">We do not add a second national park to this loop. Stay with ${esc(guide.park.shortName)}.</p>`
+      }
+      <p class="cta-row">
+        <a class="btn" href="${esc(`/?park=${guide.park.id}`)}">Plan ${esc(guide.park.shortName)} from home</a>
+        <a class="btn-quiet" href="/trips/">Classic two-park trips</a>
+      </p>
+    `,
+  });
+}
+
+function togetherCard(loop: TwoParkLoop): string {
+  const photoA = loop.park.landmarks.find((lm) => lm.photo);
+  const photoB = loop.extra.landmarks.find((lm) => lm.photo);
+  const href = loop.classic ? `/trips/${loop.classic.slug}/` : `/together/${loop.parkId}/`;
+  return `
+          <li>
+            <a class="card" href="${esc(href)}">
+              ${
+                photoA?.photo && photoB?.photo
+                  ? `<div class="card-media pair"><img src="${esc(photoA.photo)}" alt="${esc(photoA.name)}" width="640" height="360"><img src="${esc(photoB.photo)}" alt="${esc(photoB.name)}" width="640" height="360"></div>`
+                  : photoA?.photo
+                    ? `<div class="card-media"><img src="${esc(photoA.photo)}" alt="${esc(photoA.name)}" width="640" height="360"></div>`
+                    : ""
+              }
+              <div class="card-body">
+                <p class="card-kicker">${esc(loop.days + " days · " + loop.driveLabel)}</p>
+                <h2>${esc(loop.park.shortName)} &amp; ${esc(loop.extra.shortName)}</h2>
+                <p>from ${esc(loop.home)}</p>
+                <p class="card-blurb">${esc(loop.nights.length ? `Nights in ${loop.nights.join(" · ")}.` : loop.park.blurb)}</p>
+              </div>
+            </a>
+          </li>`;
+}
+
+function otherPark(loop: TwoParkLoop, parkId: string) {
+  return loop.parkId === parkId ? loop.extra : loop.park;
+}
+
+function pairLengthCard(loop: TwoParkLoop, fromParkId: string): string {
+  const leftPark = getPark(fromParkId) ?? loop.park;
+  const right = otherPark(loop, fromParkId);
+  const href = loop.classic ? `/trips/${loop.classic.slug}/` : loop.plannerHref;
+  const cta = loop.classic ? "Open this classic loop" : `Open this ${loop.days}-day trip`;
+  return `
+    <article class="compare-card is-best">
+      <p class="card-kicker">${esc(loop.driveLabel)}</p>
+      <h2>${esc(leftPark.shortName)} &amp; ${esc(right.shortName)}</h2>
+      <p class="towns">${esc(`${loop.days} days from ${loop.home}. Nights in ${loop.nights.join(" · ") || "the two parks"}.`)}</p>
+      <ol class="mini-days">
+        ${loop.titles
+          .map(
+            (day) =>
+              `<li><span>${esc(String(day.day))}</span><strong>${esc(day.title)}</strong></li>`,
+          )
+          .join("")}
+      </ol>
+      <a class="btn" href="${esc(href)}">${esc(cta)}</a>
+    </article>`;
+}
+
+function togetherIndexLabel(guide: ParkPairGuide): string {
+  if (guide.loops.length) {
+    return guide.loops.map((loop) => otherPark(loop, guide.park.id).shortName).join(" · ");
+  }
+  return "Already a full loop";
+}
+
+function togetherParkDescription(guide: ParkPairGuide): string {
+  if (guide.loops[0]) {
+    const loop = guide.loops[0];
+    const extra = otherPark(loop, guide.park.id);
+    return `Can you add a second park to ${guide.park.shortName}? ${extra.shortName} is a ${loop.driveLabel} — ${loop.days} days from ${loop.home}. Compare pairs, then open a printable plan.`;
+  }
+  return `${guide.park.shortName} is already a full Rimfold loop. ${guide.bakedIn ?? "We do not stitch on a distant second park."}`;
+}
+
+function togetherParkLede(guide: ParkPairGuide): string {
+  if (guide.loops.length === 1) {
+    const loop = guide.loops[0];
+    const extra = otherPark(loop, guide.park.id);
+    return `${extra.shortName} is the add-on that shares a ${loop.driveLabel} with ${guide.park.shortName}. Budget ${loop.days} days from ${loop.home.split(",")[0]}.`;
+  }
+  if (guide.loops.length > 1) {
+    const names = guide.loops.map((loop) => otherPark(loop, guide.park.id).shortName).join(" or ");
+    return `You can add ${names} — only parks on the same drive, not a wish list.`;
+  }
+  return guide.bakedIn ?? `${guide.park.shortName} stays a one-park trip on Rimfold.`;
+}
+
+function togetherHubJsonLd(loops: TwoParkLoop[]): string {
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "Can you visit two national parks on one trip?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Yes, if they share a drive you would actually do in a day. Rimfold only pairs parks like Zion and Grand Canyon (4.5 hours) or Yellowstone and Grand Teton (2.5 hours).",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "How many days for two national parks?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Usually 6 to 8 days. One park is a 5-day taste. Two parks need extra mornings so you are not driving every afternoon.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Can I do Zion and Grand Canyon together?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Yes. An 8-day loop from Las Vegas covers Zion Canyon, a Bryce side trip, and the Grand Canyon South Rim.",
+        },
+      },
+    ],
+    name: "Two national parks on one trip",
+    url: "https://rimfold.com/together/",
+    about: loops.map((loop) => ({
+      "@type": "TouristTrip",
+      name: `${loop.park.shortName} and ${loop.extra.shortName}`,
+      url: loop.classic
+        ? `https://rimfold.com/trips/${loop.classic.slug}/`
+        : `https://rimfold.com/together/${loop.parkId}/`,
+    })),
+  });
+}
+
+function togetherParkJsonLd(guide: ParkPairGuide): string {
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `Parks to combine with ${guide.park.name}`,
+    itemListElement: guide.loops.map((loop, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: `${guide.park.shortName} and ${otherPark(loop, guide.park.id).shortName}`,
+      url: loop.classic
+        ? `https://rimfold.com/trips/${loop.classic.slug}/`
+        : `https://rimfold.com/together/${loop.parkId}/`,
+    })),
+  });
+}
+
 function tripBody(outline: ClassicOutline): string {
   const { trip, park, days, stops, photos, plannerHref } = outline;
   const bbox = mapBbox(stops.length ? stops.map((s) => s.coord) : [park.coord]);
@@ -476,12 +740,13 @@ function layout(opts: {
     <nav class="top-nav">
       <a class="top-link" href="/trips/">Classic trips</a>
       <a class="top-link" href="/days/">How many days</a>
+      <a class="top-link" href="/together/">Two parks</a>
     </nav>
   </header>
   <main>${opts.body}</main>
   <footer class="site-foot">
     <p>Rimfold turns a park, a home city, and a few days into a daily plan you can print. Stays are a base, not a booking.</p>
-    <p><a href="/">Plan a trip</a> · <a href="/trips/">Classic trips</a> · <a href="/days/">How many days</a> · rimfold.com</p>
+    <p><a href="/">Plan a trip</a> · <a href="/trips/">Classic trips</a> · <a href="/days/">How many days</a> · <a href="/together/">Two parks</a> · rimfold.com</p>
   </footer>
 </body>
 </html>
@@ -538,7 +803,7 @@ function pageCss(): string {
     .jump { display:flex; flex-direction:column; gap:6px; max-width:320px; margin:22px 0 28px; font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); }
     .jump select { font:15px/1.4 "DM Sans", system-ui, sans-serif; padding:10px 12px; border-radius:12px; border:1px solid rgba(26,35,50,.12); background:#fff; color:var(--ink); text-transform:none; letter-spacing:0; font-weight:500; }
     .compare { display:grid; gap:16px; }
-    @media (min-width:880px) { .compare { grid-template-columns:1fr 1fr 1fr; } }
+    @media (min-width:880px) { .compare { grid-template-columns:1fr 1fr 1fr; } .compare.pairs { grid-template-columns:1fr 1fr; } }
     .compare-card { background:#fff; border-radius:16px; border:1px solid rgba(26,35,50,.08); padding:18px 18px 20px; display:flex; flex-direction:column; gap:8px; }
     .compare-card.is-best { border-color:rgba(31,58,46,.45); }
     .compare-card h2 { margin:0; font-size:28px; }
@@ -552,6 +817,8 @@ function pageCss(): string {
     @media (min-width:720px) { .park-index { grid-template-columns:1fr 1fr; } }
     .park-index a { display:flex; justify-content:space-between; gap:12px; text-decoration:none; color:inherit; background:#fff; border-radius:12px; border:1px solid rgba(26,35,50,.08); padding:12px 14px; }
     .park-index a span:last-child { color:var(--soft); font-size:13px; }
+    .faq h3 { font-family:Fraunces,Georgia,serif; font-size:20px; margin:22px 0 8px; color:var(--pine); }
+    .faq p { max-width:640px; color:var(--soft); margin:0; }
   `;
 }
 
