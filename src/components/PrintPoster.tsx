@@ -225,14 +225,21 @@ function posterPhotos(landmarks: Landmark[], max: number): (Landmark & { photo: 
     unique.push(lm);
   }
   if (unique.length <= max) return unique;
-  const picks: (Landmark & { photo: string })[] = [];
-  for (let i = 0; i < max; i++) {
-    const idx = Math.round((i * (unique.length - 1)) / Math.max(1, max - 1));
-    const lm = unique[idx];
+
+  const pinned = unique.filter((lm) => POSTER_ALWAYS.has(lm.id));
+  const rest = unique.filter((lm) => !POSTER_ALWAYS.has(lm.id));
+  const slots = Math.max(0, max - pinned.length);
+  const picks: (Landmark & { photo: string })[] = [...pinned.slice(0, max)];
+  for (let i = 0; i < slots; i++) {
+    const idx = Math.round((i * (rest.length - 1)) / Math.max(1, slots - 1));
+    const lm = rest[idx];
     if (lm && !picks.some((pick) => pick.id === lm.id)) picks.push(lm);
   }
-  return picks;
+  return picks.slice(0, max);
 }
+
+/** Always keep these on the save-trip poster when the park has them. */
+const POSTER_ALWAYS = new Set(["prismatic"]);
 
 /** Keep in sync with `.print-body` rail width and `.print-map-mat` padding. */
 const RAIL_W = 418;
