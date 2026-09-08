@@ -1,3 +1,4 @@
+import { allocateBlocks } from "../lib/allocateBlocks";
 import { resolvePark } from "./nearbyParks";
 import { getPark } from "./parks";
 import type { ExploreBlock, ParkProfile, StayArea } from "../types";
@@ -129,7 +130,7 @@ export function classicOutline(trip: ClassicTrip): ClassicOutline | null {
   const park = resolvePark(trip.parkId, trip.alsoParkId);
   if (!park) return null;
   const destNights = Math.max(1, trip.days - 1);
-  const allocations = allocateBlocks(park.blocks, destNights, true);
+  const allocations = allocateBlocks(park.blocks, destNights, true, park);
   const nights: { area: StayArea; block: ExploreBlock }[] = [];
   for (const alloc of allocations) {
     const area = park.stayAreas.find((item) => item.id === alloc.block.areaId);
@@ -254,28 +255,3 @@ export function classicTripCards(): {
   });
 }
 
-function allocateBlocks(
-  blocks: ExploreBlock[],
-  destinationNights: number,
-  family: boolean,
-): { block: ExploreBlock; nights: number }[] {
-  if (blocks.length === 0 || destinationNights <= 0) return [];
-  const maxBlocks =
-    destinationNights === 1 ? 1 : destinationNights === 2 ? Math.min(2, blocks.length) : blocks.length;
-  const chosen = blocks.slice(0, maxBlocks);
-  const nights = chosen.map(() => 1);
-  let remaining = destinationNights - chosen.length;
-  let i = 0;
-  while (remaining > 0) {
-    const preferTwo = family || chosen[i].stayNights >= 2;
-    if (preferTwo || chosen.length === 1) {
-      nights[i] += 1;
-      remaining -= 1;
-    } else {
-      nights[i] += 1;
-      remaining -= 1;
-    }
-    i = (i + 1) % chosen.length;
-  }
-  return chosen.map((block, idx) => ({ block, nights: nights[idx] }));
-}

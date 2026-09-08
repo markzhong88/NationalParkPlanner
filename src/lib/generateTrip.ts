@@ -19,6 +19,7 @@ import {
   travelerLabel,
 } from "./format";
 import { fetchDrivingRoute, formatHours, geocodePlace, haversineMiles, estimateDriveHours } from "./geo";
+import { allocateBlocks } from "./allocateBlocks";
 import { buildStyleNote } from "./styleNote";
 
 const FLY_THRESHOLD_MILES = 380;
@@ -57,7 +58,7 @@ export async function generateTrip(input: TripInput): Promise<TripPlan> {
   );
   const gatewayReturnNight = flying && input.days >= 6 && !lastStayIsGateway;
   const destinationNights = Math.max(1, input.days - 1 - (gatewayReturnNight ? 1 : 0));
-  const allocations = allocateBlocks(park.blocks, destinationNights, family);
+  const allocations = allocateBlocks(park.blocks, destinationNights, family, park);
 
   const nights: NightStay[] = [];
   for (const alloc of allocations) {
@@ -196,35 +197,6 @@ async function resolveHome(query: string): Promise<{ label: string; coord: Coord
     coord: { lng: -74.006, lat: 40.7128 },
     airport: "Home",
   };
-}
-
-function allocateBlocks(
-  blocks: ExploreBlock[],
-  destinationNights: number,
-  family: boolean,
-): { block: ExploreBlock; nights: number }[] {
-  if (blocks.length === 0 || destinationNights <= 0) return [];
-
-  const maxBlocks =
-    destinationNights === 1 ? 1 : destinationNights === 2 ? Math.min(2, blocks.length) : blocks.length;
-  const chosen = blocks.slice(0, maxBlocks);
-  const nights = chosen.map(() => 1);
-  let remaining = destinationNights - chosen.length;
-
-  let i = 0;
-  while (remaining > 0) {
-    const preferTwo = family || chosen[i].stayNights >= 2;
-    if (preferTwo || chosen.length === 1) {
-      nights[i] += 1;
-      remaining -= 1;
-    } else {
-      nights[i] += 1;
-      remaining -= 1;
-    }
-    i = (i + 1) % chosen.length;
-  }
-
-  return chosen.map((block, idx) => ({ block, nights: nights[idx] }));
 }
 
 function buildDays(args: {
@@ -516,7 +488,7 @@ function activitiesFor(args: {
       ...evening,
     ];
   }
-  if (block.driveHoursFromPrev >= 0.4) {
+  if (block.driveHoursFromPrev >= 0.4 && block.driveHoursFromPrev < 1.5) {
     return [
       `Drive into the park (${formatHours(block.driveHoursFromPrev)})`,
       ...(block.fullDayActivities ?? full),

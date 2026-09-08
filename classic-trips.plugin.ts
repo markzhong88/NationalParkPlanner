@@ -6,9 +6,12 @@ import {
   matchClassicPath,
   renderClassicHub,
   renderClassicTripPage,
+  renderDaysHub,
+  renderDaysParkPage,
   renderRobots,
   renderSitemap,
 } from "./src/lib/seoPages";
+import { PARKS_BY_POPULARITY } from "./src/data/parks";
 
 const SITE = "https://rimfold.com";
 
@@ -29,6 +32,15 @@ export function classicTripPages(): Plugin {
         const dir = join(dist, "trips", trip.slug);
         mkdirSync(dir, { recursive: true });
         writeFileSync(join(dir, "index.html"), renderClassicTripPage(trip));
+      }
+      mkdirSync(join(dist, "days"), { recursive: true });
+      writeFileSync(join(dist, "days", "index.html"), renderDaysHub());
+      for (const park of PARKS_BY_POPULARITY) {
+        const html = renderDaysParkPage(park.id);
+        if (!html) continue;
+        const dir = join(dist, "days", park.id);
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(join(dir, "index.html"), html);
       }
       writeFileSync(join(dist, "sitemap.xml"), renderSitemap(SITE));
       writeFileSync(join(dist, "robots.txt"), renderRobots(SITE));

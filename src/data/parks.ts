@@ -133,6 +133,11 @@ export const PARKS: ParkProfile[] = [
           "Visitor Center and Mather Point",
           "Yavapai Point sunset",
         ],
+        fullDayActivities: [
+          "Visitor Center, Mather Point, and the Rim Trail through the village",
+          "Desert View Drive to the Watchtower if you want the east rim",
+          "Yavapai Point or Hopi Point at sunset",
+        ],
       },
     ],
     landmarks: [

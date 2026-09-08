@@ -37,6 +37,12 @@ export function Landing({ value, onChange, onSubmit, onDemo }: Props) {
           >
             Classic trips
           </a>
+          <a
+            href="/days/"
+            className="text-[12px] font-medium text-[#f4efe4]/80 underline decoration-gold/50 underline-offset-4 transition hover:text-[#f4efe4]"
+          >
+            How many days
+          </a>
           <FeedbackLink className="text-[12px] font-medium text-[#f4efe4]/80 underline decoration-gold/50 underline-offset-4 transition hover:text-[#f4efe4]" />
         </div>
       </header>
@@ -50,7 +56,14 @@ export function Landing({ value, onChange, onSubmit, onDemo }: Props) {
           </h1>
           <p className="mt-6 max-w-md text-[16px] leading-relaxed text-[#f4efe4]/80">
             Home, park, and days become a daily plan, a cost range, and an artistic map. Stay with
-            one park, or add a nearby park that shares the same drive. Or start from a{" "}
+            one park, or add a nearby park that shares the same drive. Check{" "}
+            <a
+              href="/days/"
+              className="text-[#f4efe4] underline decoration-gold/60 underline-offset-4"
+            >
+              how many days you need
+            </a>
+            , or start from a{" "}
             <a
               href="/trips/"
               className="text-[#f4efe4] underline decoration-gold/60 underline-offset-4"
