@@ -47,6 +47,7 @@ export const CITIES: City[] = [
   { name: "Boise", state: "ID", coord: { lng: -116.2023, lat: 43.615 }, airport: "BOI" },
   { name: "Billings", state: "MT", coord: { lng: -108.5007, lat: 45.7833 }, airport: "BIL" },
   { name: "Missoula", state: "MT", coord: { lng: -113.9966, lat: 46.8721 }, airport: "MSO" },
+  { name: "Kalispell", state: "MT", coord: { lng: -114.316, lat: 48.1958 }, airport: "FCA", aliases: ["glacier park international", "whitefish"] },
   { name: "Spokane", state: "WA", coord: { lng: -117.426, lat: 47.6588 }, airport: "GEG" },
   { name: "Anchorage", state: "AK", coord: { lng: -149.9003, lat: 61.2181 }, airport: "ANC" },
   { name: "Honolulu", state: "HI", coord: { lng: -157.8583, lat: 21.3069 }, airport: "HNL" },

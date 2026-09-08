@@ -30,14 +30,15 @@ export function renderClassicHub(): string {
   const cards = classicTripCards();
   return layout({
     path: "/trips/",
-    title: "Classic national park trips — Rimfold",
+    title: "National park road trips — Rimfold",
     description:
-      "Curated 7-day road trips for Grand Canyon, Zion, Yellowstone, Yosemite, and Great Smoky Mountains, plus an 8-day Zion and Grand Canyon loop. Daily plans and a map.",
+      "Plan a national park road trip with a day-by-day itinerary, overnight towns, and a printable map. Classic loops for Grand Canyon, Zion, Yellowstone, Yosemite, the Smokies, and Glacier.",
     jsonLd: hubJsonLd(),
     body: `
-      <p class="kicker">Classic trips</p>
-      <h1>Classic loops people actually drive.</h1>
-      <p class="lede">Seven-day loops for Grand Canyon, Zion, Yellowstone, Yosemite, and the Smokies — plus one 8-day Zion and Grand Canyon drive. Overnight towns, a sane daily pace, and a map you can open and print.</p>
+      <p class="kicker">National park road trips</p>
+      <h1>National park road trips you can actually drive.</h1>
+      <p class="lede">A national park road trip should have overnight towns, a sane daily pace, and a map you can fold. These are the loops people actually drive: seven days in Grand Canyon, Zion, Yellowstone, Yosemite, the Smokies, or Glacier — plus an 8-day Zion and Grand Canyon circuit.</p>
+      <p class="lede">Each itinerary starts from a gateway city. Open one for the days and the map, or generate a trip from your own home.</p>
       <ul class="cards">
         ${cards
           .map(
@@ -65,7 +66,8 @@ export function renderClassicHub(): string {
           )
           .join("")}
       </ul>
-      <p class="foot-link"><a href="/">Or plan a different park from home →</a></p>
+      <p class="cta-row"><a class="btn" href="/">Plan a national park road trip from home</a></p>
+      <p class="foot-link"><a href="/">Or pick a different park and days →</a></p>
     `,
   });
 }
@@ -158,7 +160,7 @@ function hubJsonLd(): string {
   return JSON.stringify({
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "Classic national park trips",
+    name: "National park road trips",
     itemListElement: CLASSIC_TRIPS.map((trip, index) => ({
       "@type": "ListItem",
       position: index + 1,

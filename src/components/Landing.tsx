@@ -55,7 +55,7 @@ export function Landing({ value, onChange, onSubmit, onDemo }: Props) {
               href="/trips/"
               className="text-[#f4efe4] underline decoration-gold/60 underline-offset-4"
             >
-              classic 7-day loop
+              classic national park road trip
             </a>
             .
           </p>

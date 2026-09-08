@@ -685,13 +685,26 @@ function waypointsFromDays(days: DayPlan[], origin: Coordinates): Coordinates[] 
   return pts;
 }
 
+function isRoadMove(day: DayPlan, prev?: DayPlan): boolean {
+  if (!day.route) return false;
+  if (day.title === "Fly home") return false;
+  if (/^fly /i.test(day.route) || /^fly /i.test(day.title)) return false;
+  if (prev) {
+    return (
+      Math.abs(prev.coord.lat - day.coord.lat) >= 0.04 ||
+      Math.abs(prev.coord.lng - day.coord.lng) >= 0.04
+    );
+  }
+  return day.driveHours > 0;
+}
+
 function attachDriveLegs(
   days: DayPlan[],
   routed: Awaited<ReturnType<typeof fetchDrivingRoute>>,
 ): DriveLeg[] {
-  const moving = days.filter(
-    (d) => d.route && d.driveHours >= 0.75 && d.title !== "Fly home" && !d.title.startsWith("Return to"),
-  );
+  // Same overnight hops as waypointsFromDays — not “long drives only”.
+  // Skipping Kalispell→West Glacier (~0.5 hr) used to assign that OSRM leg to the next move.
+  const moving = days.filter((d, i) => isRoadMove(d, days[i - 1]));
   return moving.map((d, i) => {
     const osrm = routed?.legs[i];
     if (osrm && osrm.hours > 0) {

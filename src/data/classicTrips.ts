@@ -55,6 +55,18 @@ export const CLASSIC_TRIPS: ClassicTrip[] = [
     covers: ["prismatic"],
   },
   {
+    slug: "glacier-7-day",
+    title: "7-day Glacier National Park family road trip",
+    description:
+      "A 7-day Glacier itinerary from Kalispell: Lake McDonald, Trail of the Cedars, Going-to-the-Sun Road, and Many Glacier. Daily plan, overnight towns, and a map.",
+    parkId: "glacier",
+    home: "Kalispell, MT",
+    days: 7,
+    adults: 2,
+    kids: 2,
+    covers: ["mcdonald"],
+  },
+  {
     slug: "yosemite-7-day",
     title: "7-day Yosemite road trip from San Francisco",
     description:
