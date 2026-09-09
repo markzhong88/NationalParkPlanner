@@ -3,6 +3,10 @@ import type { CostEstimate, TripInput, TripPlan } from "../types";
 export type EstimateRequest = {
   home: string;
   homeAirport: string;
+  exit?: string;
+  exitAirport?: string;
+  oneWay?: boolean;
+  flyOut?: boolean;
   gateway: string;
   gatewayAirport: string;
   parkName: string;
@@ -49,13 +53,20 @@ export function heuristicEstimate(req: EstimateRequest): CostEstimate {
   const people = payingSeats(req.adults, req.kids);
   const seats = people;
   const pair = flightPair(req);
+  const oneWay = Boolean(req.oneWay);
+  const flyOut = req.flyOut ?? req.flying;
 
   let flightsLow = 0;
   let flightsHigh = 0;
   if (req.flying) {
-    const fare = roundTripFarePerPerson(req.flightMiles);
-    flightsLow = fare.low * seats;
-    flightsHigh = fare.high * seats;
+    const round = roundTripFarePerPerson(req.flightMiles);
+    if (oneWay && !flyOut) {
+      flightsLow = Math.round(round.low * 0.55) * seats;
+      flightsHigh = Math.round(round.high * 0.6) * seats;
+    } else {
+      flightsLow = round.low * seats;
+      flightsHigh = round.high * seats;
+    }
   }
 
   const priceyPark = /yosemite|glacier|yellowstone|zion|canyon|acadia|rainier|sequoia|teton|volcano|crater|key west/i.test(req.parkName);
@@ -66,8 +77,9 @@ export function heuristicEstimate(req: EstimateRequest): CostEstimate {
 
   const dayRateLow = req.kids > 0 ? 78 : 58;
   const dayRateHigh = req.kids > 0 ? 125 : 95;
-  const rentalLow = dayRateLow * req.days;
-  const rentalHigh = dayRateHigh * req.days;
+  const drop = oneWay ? 1.35 : 1;
+  const rentalLow = Math.round(dayRateLow * req.days * drop);
+  const rentalHigh = Math.round(dayRateHigh * req.days * (oneWay ? 1.55 : 1));
 
   const foodLow = (req.adults * 42 + req.kids * 24) * req.days;
   const foodHigh = (req.adults * 68 + req.kids * 40) * req.days;
@@ -75,12 +87,19 @@ export function heuristicEstimate(req: EstimateRequest): CostEstimate {
   const extrasLow = 45 + people * (req.highlights.some((h) => /antelope|canyon|grove|tortugas/i.test(h)) ? 45 : 25);
   const extrasHigh = 90 + people * (req.highlights.some((h) => /antelope|canyon|grove|tortugas/i.test(h)) ? 95 : 50);
 
+  const exitName = (req.exit ?? req.home).split(",")[0];
+  const startName = req.home.split(",")[0];
+
   return finalize({
     flights: {
       low: flightsLow,
       high: flightsHigh,
       note: req.flying
-        ? `Round-trip ${pair} for ${seats} traveler${seats === 1 ? "" : "s"} (kids 2+ pay the same as adults)`
+        ? oneWay && !flyOut
+          ? `One-way ${pair} for ${seats} traveler${seats === 1 ? "" : "s"} (kids 2+ pay the same as adults)`
+          : oneWay
+            ? `Open-jaw ${pair}, out to ${req.exitAirport && req.exitAirport !== "Home" ? req.exitAirport : exitName} for ${seats} traveler${seats === 1 ? "" : "s"}`
+            : `Round-trip ${pair} for ${seats} traveler${seats === 1 ? "" : "s"} (kids 2+ pay the same as adults)`
         : "No flights — driving from home",
     },
     hotels: {
@@ -91,7 +110,9 @@ export function heuristicEstimate(req: EstimateRequest): CostEstimate {
     rental: {
       low: rentalLow,
       high: rentalHigh,
-      note: `${req.days} days, ${req.kids > 0 ? "SUV" : "midsize"}`,
+      note: oneWay
+        ? `${req.days} days, one-way ${startName} → ${exitName}`
+        : `${req.days} days, ${req.kids > 0 ? "SUV" : "midsize"}`,
     },
     food: {
       low: foodLow,
@@ -133,6 +154,10 @@ export function requestFromPlan(plan: TripPlan, input: TripInput): EstimateReque
   return {
     home: plan.homeLabel,
     homeAirport: plan.homeAirport,
+    exit: plan.exitLabel,
+    exitAirport: plan.exitAirport,
+    oneWay: plan.oneWay,
+    flyOut: plan.flyOut,
     gateway: plan.gateway,
     gatewayAirport: plan.gatewayAirport,
     parkName: plan.parkName,

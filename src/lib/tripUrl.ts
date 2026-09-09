@@ -1,6 +1,6 @@
 import { getPark } from "../data/parks";
 import { nearbyAddon } from "../data/nearbyParks";
-import { homeFromUrlToken, homeUrlToken } from "../data/cities";
+import { homeFromUrlToken, homeUrlToken, oneWayExit } from "../data/cities";
 import type { TripInput } from "../types";
 import { defaultStartDate } from "./format";
 
@@ -41,9 +41,12 @@ export function encodeTripToken(input: TripInput): string {
     parks.push(input.alsoParkId);
   }
   const start = compactDate(input.startDate) ?? compactDate(defaultStartDate()) ?? "000101";
+  const home = homeUrlToken(input.home);
+  const exit = oneWayExit(input.home, input.exit);
+  const place = exit ? `${home}~${homeUrlToken(exit)}` : home;
   return [
     parks.join("~"),
-    homeUrlToken(input.home),
+    place,
     String(input.adults),
     String(input.kids),
     String(input.days),
@@ -55,7 +58,9 @@ function tripFromToken(token: string): TripInput | null {
   const match = token
     .trim()
     .toLowerCase()
-    .match(/^([a-z0-9-]+)(?:~([a-z0-9-]+))?\.([a-z0-9-]+)\.(\d{1,2})\.(\d{1,2})\.(\d{1,2})\.(\d{6})$/);
+    .match(
+      /^([a-z0-9-]+)(?:~([a-z0-9-]+))?\.([a-z0-9-]+)(?:~([a-z0-9-]+))?\.(\d{1,2})\.(\d{1,2})\.(\d{1,2})\.(\d{6})$/,
+    );
   if (!match) return null;
   const parkId = match[1];
   const alsoRaw = match[2] ?? "";
@@ -63,15 +68,16 @@ function tripFromToken(token: string): TripInput | null {
   if (!getPark(parkId) || home.length < 2) return null;
   const alsoParkId = nearbyAddon(parkId, alsoRaw) ? alsoRaw : undefined;
   const addon = nearbyAddon(parkId, alsoParkId);
-  const days = clampInt(match[6], 3, 10, addon?.minDays ?? 7);
+  const days = clampInt(match[7], 3, 10, addon?.minDays ?? 7);
   return {
     home: home.slice(0, 80),
+    exit: oneWayExit(home, match[4] ? homeFromUrlToken(match[4]) : undefined),
     parkId,
     alsoParkId,
-    adults: clampInt(match[4], 1, 8, 2),
-    kids: clampInt(match[5], 0, 8, 2),
+    adults: clampInt(match[5], 1, 8, 2),
+    kids: clampInt(match[6], 0, 8, 2),
     days: addon ? Math.max(days, addon.minDays) : days,
-    startDate: expandDate(match[7]) ?? defaultStartDate(),
+    startDate: expandDate(match[8]) ?? defaultStartDate(),
   };
 }
 
@@ -86,6 +92,7 @@ function tripFromLegacySearch(search: string): TripInput | null {
   const days = clampInt(q.get("days"), 3, 10, addon?.minDays ?? 7);
   return {
     home: home.slice(0, 80),
+    exit: oneWayExit(home, q.get("to") ?? q.get("exit") ?? undefined),
     parkId,
     alsoParkId,
     adults: clampInt(q.get("adults"), 1, 8, 2),

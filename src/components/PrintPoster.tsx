@@ -24,7 +24,7 @@ export function PrintPoster({
   const destinations = destinationLine(plan);
   const quote = dayCount <= 5 ? firstSentence(plan.styleNote) : "";
   const bookings = [plan.flightNote, plan.rentalNote].filter(Boolean).join("  ·  ");
-  const how = plan.flying ? `Flying via ${plan.gateway}` : `From ${plan.homeLabel}`;
+  const how = travelHow(plan);
   const titleLines = posterTitleLines(prettyTitle(plan.title));
   const railW = columns > 1 ? RAIL_W_SPLIT : RAIL_W;
   const mapHeight = posterRailMapHeight(mapAspect, railW);
@@ -179,8 +179,17 @@ function oneLine(value: string): string {
 }
 
 function stayLine(stay: string): string {
-  if (/overnight flight/i.test(stay) || /^home in /i.test(stay)) return stay;
+  if (/overnight flight/i.test(stay) || /^home in /i.test(stay) || /^arrive /i.test(stay)) return stay;
   return `Overnight · ${stay}`;
+}
+
+function travelHow(plan: TripPlan): string {
+  const start = plan.homeLabel.split(",")[0];
+  const end = plan.exitLabel.split(",")[0];
+  if (plan.oneWay) {
+    return plan.flying ? `${start} in · ${end} out` : `${start} → ${end}`;
+  }
+  return plan.flying ? `Flying via ${plan.gateway}` : `From ${plan.homeLabel}`;
 }
 
 function destinationLine(plan: TripPlan): string {

@@ -5,9 +5,16 @@ import { searchPlaces, type PlaceSuggestion } from "../lib/geo";
 type Props = {
   value: string;
   onChange: (value: string) => void;
+  required?: boolean;
+  placeholder?: string;
 };
 
-export function HomeSearch({ value, onChange }: Props) {
+export function HomeSearch({
+  value,
+  onChange,
+  required = true,
+  placeholder = "Type a city — New York, Phoenix…",
+}: Props) {
   const [open, setOpen] = useState(false);
   const [remote, setRemote] = useState<PlaceSuggestion[]>([]);
   const [active, setActive] = useState(0);
@@ -51,7 +58,7 @@ export function HomeSearch({ value, onChange }: Props) {
   return (
     <div ref={boxRef} className="relative">
       <input
-        required
+        required={required}
         autoComplete="off"
         value={value}
         onChange={(e) => {
@@ -75,7 +82,7 @@ export function HomeSearch({ value, onChange }: Props) {
             setOpen(false);
           }
         }}
-        placeholder="Type a city — New York, Phoenix…"
+        placeholder={placeholder}
         className="w-full rounded-xl border border-ink/10 bg-white/90 px-3.5 py-3 text-[15px] outline-none ring-pine/30 transition focus:ring-2"
       />
       {open && options.length > 0 ? (

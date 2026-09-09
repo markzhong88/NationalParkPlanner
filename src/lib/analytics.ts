@@ -45,6 +45,7 @@ export function trackGenerateTrip(input: TripInput, source: GenerateSource, extr
     adults: input.adults,
     kids: input.kids,
     home: input.home.slice(0, 80),
+    exit: input.exit?.slice(0, 80) ?? "(none)",
     flying: extra.flying ?? false,
     source,
   });

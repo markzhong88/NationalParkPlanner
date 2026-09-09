@@ -5,6 +5,8 @@ export type Coordinates = {
 
 export type TripInput = {
   home: string;
+  /** Optional city to end in. Blank or same as home is a round trip. */
+  exit?: string;
   parkId: string;
   /** Optional curated neighbor, e.g. Zion + Grand Canyon. */
   alsoParkId?: string;
@@ -105,6 +107,10 @@ export type TripPlan = {
   routeGeometry: [number, number][];
   homeLabel: string;
   homeAirport: string;
+  exitLabel: string;
+  exitAirport: string;
+  oneWay: boolean;
+  flyOut: boolean;
   gatewayAirport: string;
   flightMiles: number;
   parkName: string;

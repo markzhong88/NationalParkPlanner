@@ -116,6 +116,22 @@ export function homeFromUrlToken(token: string): string {
   return restored;
 }
 
+/** True when two typed cities are the same place (round trip). */
+export function sameHomeCity(a?: string, b?: string): boolean {
+  const left = (a ?? "").trim();
+  const right = (b ?? "").trim();
+  if (!left || !right) return false;
+  if (left.toLowerCase() === right.toLowerCase()) return true;
+  return homeUrlToken(left) === homeUrlToken(right);
+}
+
+/** Exit city for a one-way trip, or undefined for a round trip. */
+export function oneWayExit(home: string, exit?: string): string | undefined {
+  const value = exit?.trim();
+  if (!value || sameHomeCity(home, value)) return undefined;
+  return value.slice(0, 80);
+}
+
 function citySlug(city: City): string {
   return `${slugText(city.name)}-${city.state.toLowerCase()}`;
 }

@@ -82,7 +82,7 @@ export function App() {
     } catch {
       trackGenerateFailed(next.parkId);
       await sleep(600);
-      setError("Could not generate that trip. Check the home city and try again.");
+      setError("Could not generate that trip. Check the start city and try again.");
       setStatus("form");
     }
   };

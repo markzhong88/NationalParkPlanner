@@ -1,5 +1,5 @@
 import { resolvePark } from "../data/nearbyParks";
-import { findCity } from "../data/cities";
+import { findCity, oneWayExit } from "../data/cities";
 import type {
   Coordinates,
   DayPlan,
@@ -24,6 +24,12 @@ import { buildStyleNote } from "./styleNote";
 
 const FLY_THRESHOLD_MILES = 380;
 
+type Place = {
+  label: string;
+  coord: Coordinates;
+  airport: string;
+};
+
 type NightStay = {
   area: StayArea;
   block: ExploreBlock | null;
@@ -34,7 +40,9 @@ export async function generateTrip(input: TripInput): Promise<TripPlan> {
   const park = resolvePark(input.parkId, input.alsoParkId);
   if (!park) throw new Error("Unknown park");
 
-  const home = await resolveHome(input.home);
+  const home = await resolvePlace(input.home);
+  const exit = await resolvePlace(oneWayExit(input.home, input.exit) ?? input.home);
+  const oneWay = !samePlace(home, exit);
   const distanceToGateway = haversineMiles(home.coord, park.gateway.coord);
   const homeIsGateway =
     distanceToGateway < 35 ||
@@ -43,6 +51,7 @@ export async function generateTrip(input: TripInput): Promise<TripPlan> {
   const flying = oceanPark
     ? distanceToGateway > 80
     : !homeIsGateway && distanceToGateway > FLY_THRESHOLD_MILES;
+  const flyOut = oneWay ? shouldFlyToExit(park, exit, oceanPark) : flying;
   const people = input.adults + input.kids;
   const family = input.kids > 0 || people >= 3;
   const start = parseISODate(input.startDate);
@@ -56,7 +65,7 @@ export async function generateTrip(input: TripInput): Promise<TripPlan> {
       (lastArea.name.toLowerCase() === park.gateway.city.toLowerCase() ||
         nearby(lastArea.coord, park.gateway.coord)),
   );
-  const gatewayReturnNight = flying && input.days >= 6 && !lastStayIsGateway;
+  const gatewayReturnNight = flyOut && input.days >= 6 && !lastStayIsGateway;
   const destinationNights = Math.max(1, input.days - 1 - (gatewayReturnNight ? 1 : 0));
   const allocations = allocateBlocks(park.blocks, destinationNights, family, park);
 
@@ -86,16 +95,25 @@ export async function generateTrip(input: TripInput): Promise<TripPlan> {
   const days = buildDays({
     park,
     home,
+    exit,
+    oneWay,
     flying,
+    flyOut,
     family,
     start,
     totalDays: input.days,
     nights,
   });
 
-  const originName = flying ? park.gateway.city : home.label.split(",")[0];
+  const originName = flying ? park.gateway.city : cityShort(home);
   const originCoord = flying ? park.gateway.coord : home.coord;
-  const mapStops = buildMapStops(days, park, nights, originCoord, originName);
+  const endName = flyOut ? park.gateway.city : cityShort(exit);
+  const endCoord = flyOut ? park.gateway.coord : exit.coord;
+  const mapStops = buildMapStops(days, park, nights, originCoord, originName, {
+    name: endName,
+    coord: endCoord,
+    include: oneWay && !flyOut,
+  });
   const usedAreaIds = new Set(nights.map((n) => n.area.id));
   const landmarks = park.landmarks
     .filter((lm) => {
@@ -119,8 +137,8 @@ export async function generateTrip(input: TripInput): Promise<TripPlan> {
     coord: originCoord,
   };
   const endPoint = {
-    name: flying ? park.gateway.city : home.label.split(",")[0],
-    coord: flying ? park.gateway.coord : home.coord,
+    name: endName,
+    coord: endCoord,
   };
   const coordsForBounds = [
     ...mapStops.map((s) => s.coord),
@@ -168,6 +186,10 @@ export async function generateTrip(input: TripInput): Promise<TripPlan> {
     routeGeometry: routed?.geometry.coordinates ?? routeWaypoints.map((p) => [p.lng, p.lat]),
     homeLabel: home.label,
     homeAirport: home.airport,
+    exitLabel: exit.label,
+    exitAirport: exit.airport,
+    oneWay,
+    flyOut,
     gatewayAirport: park.gateway.airport,
     flightMiles: flying ? Math.round(haversineMiles(home.coord, park.gateway.coord)) : 0,
     parkName: park.shortName,
@@ -179,7 +201,7 @@ export async function generateTrip(input: TripInput): Promise<TripPlan> {
   };
 }
 
-async function resolveHome(query: string): Promise<{ label: string; coord: Coordinates; airport: string }> {
+async function resolvePlace(query: string): Promise<Place> {
   const known = findCity(query);
   if (known) {
     return {
@@ -199,16 +221,41 @@ async function resolveHome(query: string): Promise<{ label: string; coord: Coord
   };
 }
 
+function cityShort(place: Place): string {
+  return place.label.split(",")[0];
+}
+
+function samePlace(a: Place, b: Place): boolean {
+  if (haversineMiles(a.coord, b.coord) < 40) return true;
+  const left = cityShort(a).toLowerCase();
+  const right = cityShort(b).toLowerCase();
+  return left === right || left.includes(right) || right.includes(left);
+}
+
+function shouldFlyToExit(park: ParkProfile, exit: Place, oceanPark: boolean): boolean {
+  const toPark = haversineMiles(exit.coord, park.coord);
+  const toGateway = haversineMiles(exit.coord, park.gateway.coord);
+  const exitIsGateway =
+    toGateway < 35 || exit.label.toLowerCase().includes(park.gateway.city.toLowerCase());
+  if (exitIsGateway || toPark < FLY_THRESHOLD_MILES || toGateway < FLY_THRESHOLD_MILES) {
+    return false;
+  }
+  return oceanPark ? toPark > 80 : true;
+}
+
 function buildDays(args: {
   park: ParkProfile;
-  home: { label: string; coord: Coordinates; airport: string };
+  home: Place;
+  exit: Place;
+  oneWay: boolean;
   flying: boolean;
+  flyOut: boolean;
   family: boolean;
   start: Date;
   totalDays: number;
   nights: NightStay[];
 }): DayPlan[] {
-  const { park, home, flying, family, start, totalDays, nights } = args;
+  const { park, home, exit, oneWay, flying, flyOut, family, start, totalDays, nights } = args;
   const days: DayPlan[] = [];
   let prevArea: StayArea | null = null;
 
@@ -221,7 +268,7 @@ function buildDays(args: {
     if (i === 0) {
       const stay = night ?? nights[0];
       const dest = stay?.area ?? mustArea(park, park.blocks[0].areaId);
-      const from = flying ? park.gateway.city : home.label.split(",")[0];
+      const from = flying ? park.gateway.city : cityShort(home);
       const destIsGateway =
         dest.name.toLowerCase() === park.gateway.city.toLowerCase() || nearby(dest.coord, park.gateway.coord);
       const driveHours = flying
@@ -254,26 +301,19 @@ function buildDays(args: {
     }
 
     if (isLast) {
-      const lastNight = nights[nights.length - 1];
-      const fromName = lastNight?.isGatewayReturn
-        ? park.gateway.city
-        : lastNight?.area.name ?? park.shortName;
-      const driveHours = flying
-        ? 0.5
-        : estimateDriveHours(lastNight?.area.coord ?? park.coord, home.coord);
-      days.push({
-        day: i + 1,
-        date,
-        color,
-        title: flying ? "Fly home" : `Return to ${home.label.split(",")[0]}`,
-        route: flying ? `${park.gateway.city} → ${home.label.split(",")[0]}` : `${fromName} → ${home.label.split(",")[0]}`,
-        driveHours,
-        driveLabel: flying ? "Airport run" : formatHours(driveHours),
-        activities: departureActivities(park, home, flying, family, fromName),
-        stay: flying ? "Overnight flight / home" : `Home in ${home.label.split(",")[0]}`,
-        stayPlace: flying ? park.gateway.city : home.label.split(",")[0],
-        coord: flying ? park.gateway.coord : home.coord,
-      });
+      days.push(
+        lastDayPlan({
+          park,
+          exit,
+          oneWay,
+          flyOut,
+          family,
+          lastNight: nights[nights.length - 1],
+          day: i + 1,
+          date,
+          color,
+        }),
+      );
       continue;
     }
 
@@ -325,6 +365,81 @@ function buildDays(args: {
   return days;
 }
 
+function lastDayPlan(args: {
+  park: ParkProfile;
+  exit: Place;
+  oneWay: boolean;
+  flyOut: boolean;
+  family: boolean;
+  lastNight?: NightStay;
+  day: number;
+  date: Date;
+  color: string;
+}): DayPlan {
+  const { park, exit, oneWay, flyOut, family, lastNight, day, date, color } = args;
+  const destName = cityShort(exit);
+  const fromName = lastNight?.isGatewayReturn
+    ? park.gateway.city
+    : lastNight?.area.name ?? park.shortName;
+  const lastCoord = lastNight?.area.coord ?? park.coord;
+  const alreadyThere =
+    haversineMiles(lastCoord, exit.coord) < 40 ||
+    fromName.toLowerCase() === destName.toLowerCase();
+
+  if (flyOut) {
+    return {
+      day,
+      date,
+      color,
+      title: oneWay ? `Fly to ${destName}` : "Fly home",
+      route: `${park.gateway.city} → ${destName}`,
+      driveHours: 0.5,
+      driveLabel: "Airport run",
+      activities: departureActivities({
+        park,
+        dest: exit,
+        flyOut: true,
+        oneWay,
+        family,
+        fromName,
+        alreadyThere: false,
+        driveHours: 0.5,
+      }),
+      stay: oneWay ? `Arrive ${destName}` : "Overnight flight / home",
+      stayPlace: park.gateway.city,
+      coord: park.gateway.coord,
+    };
+  }
+
+  const driveHours = alreadyThere ? 0.4 : estimateDriveHours(lastCoord, exit.coord);
+  return {
+    day,
+    date,
+    color,
+    title: alreadyThere
+      ? destName
+      : oneWay
+        ? `${fromName} → ${destName}`
+        : `Return to ${destName}`,
+    route: alreadyThere ? undefined : `${fromName} → ${destName}`,
+    driveHours,
+    driveLabel: alreadyThere ? formatHours(0.4) : formatHours(driveHours),
+    activities: departureActivities({
+      park,
+      dest: exit,
+      flyOut: false,
+      oneWay,
+      family,
+      fromName,
+      alreadyThere,
+      driveHours,
+    }),
+    stay: oneWay ? `${destName} — many hotels in town` : `Home in ${destName}`,
+    stayPlace: destName,
+    coord: exit.coord,
+  };
+}
+
 function arrivalActivities(args: {
   park: ParkProfile;
   home: { label: string; airport: string };
@@ -374,38 +489,51 @@ function arrivalActivities(args: {
   return items;
 }
 
-function departureActivities(
-  park: ParkProfile,
-  home: { label: string; airport: string },
-  flying: boolean,
-  family: boolean,
-  fromName: string,
-): string[] {
-  if (flying) {
-    if (park.gateway.city === "Jackson") {
-      const fromLodge = fromName === "Jackson Lake Lodge";
+function departureActivities(args: {
+  park: ParkProfile;
+  dest: Place;
+  flyOut: boolean;
+  oneWay: boolean;
+  family: boolean;
+  fromName: string;
+  alreadyThere: boolean;
+  driveHours: number;
+}): string[] {
+  const destName = cityShort(args.dest);
+  if (args.flyOut) {
+    if (args.park.gateway.city === "Jackson") {
+      const fromLodge = args.fromName === "Jackson Lake Lodge";
       return [
         fromLodge
           ? "Easy morning at the lodge — coffee on the deck if time allows"
           : "Easy morning — a favorite Teton view, a lake hour, or Town Square if time allows",
         fromLodge
-          ? `Drive to ${park.gateway.airport} (~1 hr from the lodge) and return the rental`
-          : `Drive to ${park.gateway.airport} and return the rental`,
-        `Fly ${park.gateway.airport} → ${home.airport}`,
-        family ? "Keep a small bag of snacks for the flight" : "Land and head home",
+          ? `Drive to ${args.park.gateway.airport} (~1 hr from the lodge) and return the rental`
+          : `Drive to ${args.park.gateway.airport} and return the rental`,
+        `Fly ${args.park.gateway.airport} → ${args.dest.airport === "Home" ? destName : args.dest.airport}`,
+        args.family ? "Keep a small bag of snacks for the flight" : args.oneWay ? `Land in ${destName}` : "Land and head home",
       ];
     }
     return [
       "Easy morning — breakfast and a short walk if time allows",
-      `Drive to ${park.gateway.airport} and return the rental`,
-      `Fly ${park.gateway.airport} → ${home.airport}`,
-      family ? "Keep a small bag of snacks for the flight" : "Land and head home",
+      `Drive to ${args.park.gateway.airport} and return the rental`,
+      `Fly ${args.park.gateway.airport} → ${args.dest.airport === "Home" ? destName : args.dest.airport}`,
+      args.family ? "Keep a small bag of snacks for the flight" : args.oneWay ? `Land in ${destName}` : "Land and head home",
+    ];
+  }
+  if (args.alreadyThere) {
+    return [
+      args.family ? "Easy morning if checkout allows" : "A last coffee and a short walk",
+      args.oneWay ? `Drop the rental in ${destName}` : "Unpack, stretch, save the photos",
+      args.oneWay ? "You're done — no drive back to where you started" : "Home for the night",
     ];
   }
   return [
-    family ? "Breakfast and a last hotel splash if checkout allows" : "Sunrise coffee and a last overlook if it's close",
-    `Drive ${fromName} → ${home.label.split(",")[0]}`,
-    "Unpack, stretch, save the photos",
+    args.family ? "Breakfast and a last hotel splash if checkout allows" : "Sunrise coffee and a last overlook if it's close",
+    `Drive ${args.fromName} → ${destName} (${formatHours(args.driveHours)})`,
+    args.oneWay
+      ? `Drop the rental in ${destName} — one-way cars cost extra, still cheaper than looping back`
+      : "Unpack, stretch, save the photos",
   ];
 }
 
@@ -529,6 +657,7 @@ function buildMapStops(
   nights: NightStay[],
   origin: Coordinates,
   originName: string,
+  exit?: { name: string; coord: Coordinates; include: boolean },
 ): MapStop[] {
   const stops: MapStop[] = [];
   const seen = new Set<string>();
@@ -542,6 +671,7 @@ function buildMapStops(
       .filter((d) => d.stayPlace.toLowerCase() === key || nearby(d.coord, coord))
       .map((d) => d.day);
     if (id === "origin" && !linked.includes(1)) linked.unshift(1);
+    if (id === "exit" && !linked.includes(days.length)) linked.push(days.length);
     stops.push({
       id,
       name,
@@ -558,6 +688,7 @@ function buildMapStops(
     const isPark = night.area.id.includes("canyon") || night.area.id === park.id;
     add(night.area.id, night.area.name, night.area.coord, isPark ? "park" : "city");
   }
+  if (exit?.include) add("exit", exit.name, exit.coord, "city");
   return stops;
 }
 

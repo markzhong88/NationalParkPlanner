@@ -45,12 +45,28 @@ export function PlannerForm({ value, onChange, onSubmit, onDemo }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      <label className="flex flex-col gap-1.5">
-        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-soft">
-          Home
-        </span>
-        <HomeSearch value={value.home} onChange={(home) => patch({ home })} />
-      </label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-soft">
+            Start
+          </span>
+          <HomeSearch value={value.home} onChange={(home) => patch({ home })} />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-soft">
+            End in
+          </span>
+          <HomeSearch
+            required={false}
+            value={value.exit ?? ""}
+            placeholder="Same as start — or Phoenix…"
+            onChange={(exit) => patch({ exit: exit.trim() ? exit : undefined })}
+          />
+        </label>
+      </div>
+      <p className="-mt-2 text-[12px] leading-snug text-ink-soft">
+        Leave end blank to return to the start. Vegas in, Phoenix out is a common Southwest drive.
+      </p>
 
       <label className="flex flex-col gap-1.5">
         <span className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-soft">

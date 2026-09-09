@@ -303,8 +303,12 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
                       onChange={(e) => setEdits((current) => patchTripEdits(current, { flight: e.target.value }))}
                       placeholder={
                         displayPlan.flying
-                          ? `e.g. AA 1841 ${displayPlan.homeAirport} → ${displayPlan.gatewayAirport}`
-                          : "e.g. driving — or a one-way into the gateway"
+                          ? displayPlan.oneWay
+                            ? `e.g. AA 1841 ${displayPlan.homeAirport} → ${displayPlan.gatewayAirport}, out ${displayPlan.exitAirport}`
+                            : `e.g. AA 1841 ${displayPlan.homeAirport} → ${displayPlan.gatewayAirport}`
+                          : displayPlan.oneWay
+                            ? `e.g. driving ${displayPlan.homeLabel.split(",")[0]} → ${displayPlan.exitLabel.split(",")[0]}`
+                            : "e.g. driving — or a one-way into the gateway"
                       }
                       className="mt-1 w-full rounded-lg bg-white px-2.5 py-1.5 text-[13px] text-ink ring-1 ring-ink/10 outline-none focus:ring-pine/30"
                     />
@@ -314,7 +318,11 @@ export function TripPoster({ plan, trip, returning, forceFeedback = false, onRes
                     <input
                       value={edits.rental ?? ""}
                       onChange={(e) => setEdits((current) => patchTripEdits(current, { rental: e.target.value }))}
-                      placeholder={`e.g. Hertz SUV at ${displayPlan.gatewayAirport}`}
+                      placeholder={
+                        displayPlan.oneWay
+                          ? `e.g. Hertz SUV ${displayPlan.homeAirport} → ${displayPlan.exitAirport}`
+                          : `e.g. Hertz SUV at ${displayPlan.gatewayAirport}`
+                      }
                       className="mt-1 w-full rounded-lg bg-white px-2.5 py-1.5 text-[13px] text-ink ring-1 ring-ink/10 outline-none focus:ring-pine/30"
                     />
                   </label>

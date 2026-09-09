@@ -56,7 +56,8 @@ export function Landing({ value, onChange, onSubmit, onDemo }: Props) {
           </h1>
           <p className="mt-6 max-w-md text-[16px] leading-relaxed text-[#f4efe4]/80">
             Home, park, and days become a daily plan, a cost range, and an artistic map. Stay with
-            one park, or add a nearby park that shares the same drive. Check{" "}
+            one park, or add a nearby park that shares the same drive. Start in one city and end in
+            another if you want — Vegas in, Phoenix out. Check{" "}
             <a
               href="/days/"
               className="text-[#f4efe4] underline decoration-gold/60 underline-offset-4"
@@ -81,7 +82,7 @@ export function Landing({ value, onChange, onSubmit, onDemo }: Props) {
         <div className="rounded-2xl bg-[#f4efe4]/95 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] ring-1 ring-white/40 backdrop-blur">
           <h2 className="font-display text-2xl tracking-wide text-pine">Plan a trip</h2>
           <p className="mt-1 mb-5 text-sm text-ink-soft">
-            One park or a classic two-park loop — then a poster-style map.
+            One park or a classic two-park loop — start in one city, optionally end in another.
           </p>
           <PlannerForm value={value} onChange={onChange} onSubmit={onSubmit} onDemo={onDemo} />
         </div>
