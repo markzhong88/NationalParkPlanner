@@ -70,6 +70,10 @@ export function renderClassicHub(): string {
       <h1>National park road trips you can actually drive.</h1>
       <p class="lede">A national park road trip should have overnight towns, a sane daily pace, and a map you can fold. Start with one park for a week, or pick two that share a real drive — not a 12-hour interstate.</p>
       <p class="lede">Each itinerary starts from a gateway city. Open one for the days and the map, or generate a trip from your own home.</p>
+      <h2>One park, a full week</h2>
+      <ul class="cards">
+        ${onePark.map((card) => classicCard(card)).join("")}
+      </ul>
       <h2>Two parks, one drive</h2>
       <ul class="cards">
         ${twoPark.map((card) => classicCard(card)).join("")}
@@ -77,10 +81,6 @@ export function renderClassicHub(): string {
       <p class="cta-row">
         <a class="btn" href="/together/">Which parks can I combine?</a>
       </p>
-      <h2>One park, a full week</h2>
-      <ul class="cards">
-        ${onePark.map((card) => classicCard(card)).join("")}
-      </ul>
       <p class="cta-row">
         <a class="btn" href="/">Plan a national park road trip from home</a>
         <a class="btn-quiet" href="/days/">How many days do you need?</a>
