@@ -91,6 +91,7 @@ export function trackFeedbackShown(source: FeedbackSource, testing = false) {
 
 export function trackItineraryFeedback(opts: {
   rating: "very" | "pretty" | "no";
+  payEdit: "yes" | "maybe" | "no";
   parkName: string;
   parkId: string;
   days: number;
@@ -101,6 +102,7 @@ export function trackItineraryFeedback(opts: {
 }) {
   track("itinerary_feedback", {
     rating: opts.rating,
+    pay_to_edit: opts.payEdit,
     park_id: opts.parkId,
     park_name: opts.parkName,
     days: opts.days,

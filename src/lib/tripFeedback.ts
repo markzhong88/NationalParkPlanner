@@ -10,11 +10,18 @@ type FeedbackState = {
 
 export type FeedbackRating = "very" | "pretty" | "no";
 export type FeedbackSource = "save" | "idle";
+export type PayEditInterest = "yes" | "maybe" | "no";
 
 export const FEEDBACK_RATINGS: { id: FeedbackRating; emoji: string; label: string }[] = [
   { id: "very", emoji: "👍", label: "Very useful" },
   { id: "pretty", emoji: "😐", label: "Pretty useful" },
   { id: "no", emoji: "👎", label: "Not really" },
+];
+
+export const PAY_EDIT_OPTIONS: { id: PayEditInterest; label: string }[] = [
+  { id: "yes", label: "Yes" },
+  { id: "maybe", label: "Maybe" },
+  { id: "no", label: "No" },
 ];
 
 export function noteTripGenerated(): boolean {

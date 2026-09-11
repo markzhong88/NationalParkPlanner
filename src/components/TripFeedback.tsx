@@ -3,10 +3,12 @@ import { FEEDBACK_EMAIL } from "./FeedbackLink";
 import { trackFeedbackShown, trackItineraryFeedback } from "../lib/analytics";
 import {
   FEEDBACK_RATINGS,
+  PAY_EDIT_OPTIONS,
   markFeedbackDismissed,
   markFeedbackSubmitted,
   type FeedbackRating,
   type FeedbackSource,
+  type PayEditInterest,
 } from "../lib/tripFeedback";
 import type { TripInput } from "../types";
 
@@ -28,6 +30,7 @@ export function TripFeedback({
   onClose,
 }: Props) {
   const [rating, setRating] = useState<FeedbackRating | null>(null);
+  const [payEdit, setPayEdit] = useState<PayEditInterest | null>(null);
   const [note, setNote] = useState("");
   const [status, setStatus] = useState<"ask" | "sending" | "thanks" | "mailto">("ask");
 
@@ -36,11 +39,12 @@ export function TripFeedback({
   }, [source, testing]);
 
   const submit = async () => {
-    if (!rating || status !== "ask") return;
+    if (!rating || !payEdit || status !== "ask") return;
     const trimmed = note.trim().slice(0, 600);
     setStatus("sending");
     trackItineraryFeedback({
       rating,
+      payEdit,
       parkName,
       parkId: trip.parkId,
       days: trip.days,
@@ -51,6 +55,7 @@ export function TripFeedback({
     });
     const result = await sendFeedbackEmail({
       rating: FEEDBACK_RATINGS.find((item) => item.id === rating)?.label ?? rating,
+      payEdit: PAY_EDIT_OPTIONS.find((item) => item.id === payEdit)?.label ?? payEdit,
       note: trimmed,
       parkName,
       days: trip.days,
@@ -76,9 +81,7 @@ export function TripFeedback({
               <h2 id="trip-feedback-title" className="font-serif text-[20px] leading-tight text-pine">
                 Your itinerary is ready
               </h2>
-              <p className="mt-1 text-[13px] text-ink-soft">
-                One quick question — how useful was this itinerary?
-              </p>
+              <p className="mt-1 text-[13px] text-ink-soft">Two taps — then you’re done.</p>
             </div>
             <button
               type="button"
@@ -115,13 +118,38 @@ export function TripFeedback({
             })}
           </div>
 
+          <p className="mt-3 text-[13px] leading-snug text-ink-soft">
+            Would you pay once to edit this poster — flights, hotels, daily plan?
+          </p>
+          <div className="mt-1.5 grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Pay to edit this poster?">
+            {PAY_EDIT_OPTIONS.map((item) => {
+              const selected = payEdit === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setPayEdit(item.id)}
+                  className={`rounded-xl px-2 py-2 text-center text-[13px] font-medium transition ${
+                    selected
+                      ? "bg-pine text-[#f4efe4]"
+                      : "bg-white/70 text-ink ring-1 ring-ink/8 hover:bg-white"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+
           <label className="mt-3 block">
-            <span className="font-serif text-[13px] italic text-ink-soft">What would make it better?</span>
+            <span className="font-serif text-[13px] italic text-ink-soft">Anything else?</span>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
               maxLength={600}
-              rows={3}
+              rows={2}
               placeholder="Optional"
               className="mt-1.5 w-full resize-none rounded-xl bg-white/80 px-3 py-2 text-[13px] text-ink ring-1 ring-ink/10 outline-none placeholder:text-ink/35 focus:ring-pine/30"
             />
@@ -129,7 +157,7 @@ export function TripFeedback({
 
           <button
             type="button"
-            disabled={!rating}
+            disabled={!rating || !payEdit}
             onClick={() => void submit()}
             className="mt-3 rounded-full bg-pine px-4 py-2 text-[13px] font-medium text-[#f4efe4] transition hover:bg-pine/90 disabled:opacity-40"
           >
@@ -143,6 +171,7 @@ export function TripFeedback({
 
 async function sendFeedbackEmail(payload: {
   rating: string;
+  payEdit: string;
   note: string;
   parkName: string;
   days: number;
@@ -165,6 +194,7 @@ async function sendFeedbackEmail(payload: {
         from_name: "Rimfold",
         botcheck: false,
         rating: payload.rating,
+        pay_to_edit: payload.payEdit,
         park: payload.parkName,
         days: String(payload.days),
         home: payload.home.slice(0, 80),
@@ -189,6 +219,7 @@ function thanksCopy(status: "sending" | "thanks" | "mailto") {
 
 function feedbackEmailBody(payload: {
   rating: string;
+  payEdit: string;
   note: string;
   parkName: string;
   days: number;
@@ -197,11 +228,12 @@ function feedbackEmailBody(payload: {
   const note = payload.note.trim() || "(none)";
   return [
     `Rating: ${payload.rating}`,
+    `Pay to edit poster: ${payload.payEdit}`,
     `Park: ${payload.parkName}`,
     `Days: ${payload.days}`,
     `From: ${payload.home}`,
     "",
-    "What would make it better?",
+    "Anything else?",
     note,
   ].join("\n");
 }
