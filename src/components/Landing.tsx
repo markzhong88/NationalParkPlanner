@@ -49,6 +49,12 @@ export function Landing({ value, onChange, onSubmit, onDemo }: Props) {
           >
             Two parks
           </a>
+          <a
+            href="/when/"
+            className="text-[12px] font-medium text-[#f4efe4]/80 underline decoration-gold/50 underline-offset-4 transition hover:text-[#f4efe4]"
+          >
+            When to go
+          </a>
           <FeedbackLink className="text-[12px] font-medium text-[#f4efe4]/80 underline decoration-gold/50 underline-offset-4 transition hover:text-[#f4efe4]" />
         </div>
       </header>
@@ -82,6 +88,13 @@ export function Landing({ value, onChange, onSubmit, onDemo }: Props) {
               className="text-[#f4efe4] underline decoration-gold/60 underline-offset-4"
             >
               which parks share a drive
+            </a>
+            , or check the{" "}
+            <a
+              href="/when/"
+              className="text-[#f4efe4] underline decoration-gold/60 underline-offset-4"
+            >
+              best time to visit
             </a>
             .
           </p>

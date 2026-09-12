@@ -21,6 +21,15 @@ import {
   type ParkPairGuide,
   type TwoParkLoop,
 } from "./twoParkLoops";
+import {
+  allWhenGuides,
+  crowdLabel,
+  heatLabel,
+  monthName,
+  whenGuide,
+  whenParkIds,
+  type WhenGuide,
+} from "./whenToVisit";
 
 const FONTS =
   "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Oswald:wght@500;600&display=swap";
@@ -51,6 +60,12 @@ export function matchClassicPath(urlPath: string): string | null {
   if (togetherMatch) {
     const page = renderTogetherParkPage(togetherMatch[1]);
     return page ?? renderTogetherHub();
+  }
+  if (path === "/when") return renderWhenHub();
+  const whenMatch = path.match(/^\/when\/([^/]+)$/);
+  if (whenMatch) {
+    const page = renderWhenParkPage(whenMatch[1]);
+    return page ?? renderWhenHub();
   }
   return null;
 }
@@ -84,6 +99,7 @@ export function renderClassicHub(): string {
       <p class="cta-row">
         <a class="btn" href="/">Plan a national park road trip from home</a>
         <a class="btn-quiet" href="/days/">How many days do you need?</a>
+        <a class="btn-quiet" href="/when/">Best time to visit</a>
       </p>
       <p class="foot-link"><a href="/">Or pick a different park and days →</a></p>
     `,
@@ -137,9 +153,11 @@ export function renderSitemap(origin: string): string {
     "/trips/",
     "/days/",
     "/together/",
+    "/when/",
     ...CLASSIC_TRIPS.map((trip) => `/trips/${trip.slug}/`),
     ...PARKS_BY_POPULARITY.map((park) => `/days/${park.id}/`),
     ...parksThatPair().map((park) => `/together/${park.id}/`),
+    ...whenParkIds().map((id) => `/when/${id}/`),
   ];
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -261,6 +279,7 @@ export function renderDaysParkPage(parkId: string): string | null {
       <p class="cta-row">
         <a class="btn" href="${esc(rec.plannerHref)}">Open the ${esc(String(guide.recommended))}-day trip</a>
         <a class="btn-quiet" href="/trips/">Classic road trips</a>
+        ${whenGuide(guide.park.id) ? `<a class="btn-quiet" href="${esc(`/when/${guide.park.id}/`)}">Best time to visit</a>` : ""}
       </p>
     `,
   });
@@ -586,6 +605,204 @@ function togetherParkJsonLd(guide: ParkPairGuide): string {
   });
 }
 
+export function renderWhenHub(): string {
+  const guides = allWhenGuides();
+  return layout({
+    path: "/when/",
+    title: "Best time to visit a national park — Rimfold",
+    description:
+      "Best month to visit Zion or the Grand Canyon: heat, crowds, and kids, month by month. Then open a printable week from Las Vegas or Phoenix.",
+    jsonLd: whenHubJsonLd(guides),
+    body: `
+      <p class="kicker">When to go</p>
+      <h1>Best time to visit a national park</h1>
+      <p class="lede">Not a vibe. A month table: heat, crowds, and whether it works with kids. Pick September if you can. Pick the row that matches the week you actually have, then open the trip as a poster.</p>
+      <ul class="cards">
+        ${guides.map((guide) => whenCard(guide)).join("")}
+      </ul>
+      <p class="cta-row">
+        <a class="btn" href="/">Plan a trip from home</a>
+        <a class="btn-quiet" href="/days/">How many days</a>
+      </p>
+    `,
+  });
+}
+
+export function renderWhenParkPage(parkId: string): string | null {
+  const guide = whenGuide(parkId);
+  if (!guide) return null;
+  const best = joinMonthNames(guide.bestMonths);
+  const parks = allWhenGuides();
+  return layout({
+    path: `/when/${guide.park.id}/`,
+    title: `Best time to visit ${guide.park.name} — Rimfold`,
+    description: whenParkDescription(guide),
+    jsonLd: whenParkJsonLd(guide),
+    body: `
+      <nav class="crumbs"><a href="/when/">When to go</a> / ${esc(guide.park.shortName)}</nav>
+      <p class="kicker">${esc(guide.park.state)} · from ${esc(guide.home)}</p>
+      <h1>Best time to visit ${esc(guide.park.name)}</h1>
+      <p class="lede">${esc(guide.lede)}</p>
+      <div class="when-toolbar">
+        <label class="jump">
+          <span>Park</span>
+          <select onchange="location.href='/when/'+this.value+'/'">
+            ${parks
+              .map(
+                (item) =>
+                  `<option value="${esc(item.park.id)}"${item.park.id === guide.park.id ? " selected" : ""}>${esc(item.park.shortName)} — ${esc(item.park.state)}</option>`,
+              )
+              .join("")}
+          </select>
+        </label>
+        <label class="jump">
+          <span>We're going in</span>
+          <select id="when-month">
+            ${guide.months
+              .map((row) => {
+                const pick = guide.bestMonths.includes(row.month) ? " · best" : "";
+                return `<option value="${row.month}">${esc(monthName(row.month))}${esc(pick)}</option>`;
+              })
+              .join("")}
+          </select>
+        </label>
+      </div>
+      <p class="when-summary" id="when-summary">${esc(guide.months.find((row) => row.month === guide.bestMonths[0])?.summary ?? guide.lede)}</p>
+      <div class="when-scroll">
+        <table class="when-table">
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Weather</th>
+              <th>Crowds</th>
+              <th>With kids</th>
+              <th>What changes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${guide.months
+              .map((row) => {
+                const star = guide.bestMonths.includes(row.month);
+                return `
+            <tr data-month="${row.month}" data-summary="${esc(row.summary)}"${star ? ` class="is-best"` : ""}>
+              <th scope="row">${esc(monthName(row.month))}${star ? ` <span class="when-tag">Best</span>` : ""}</th>
+              <td>${esc(heatLabel(row.heat))}</td>
+              <td>${esc(crowdLabel(row.crowds))}</td>
+              <td>${esc(row.kids)}</td>
+              <td>${esc(row.note)}</td>
+            </tr>`;
+              })
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+      <p class="note">${esc(guide.caveat)}</p>
+      <h2>How to pick a month</h2>
+      <p class="lede">${esc(`If you can choose, go in ${best}. If school locks you into July, it still works — start at dawn and stay on the easy days. Last day of the poster is the drive or flight home.`)}</p>
+      <div class="faq">
+        ${guide.faqs
+          .map(
+            (item) => `
+        <h3>${esc(item.q)}</h3>
+        <p>${esc(item.a)}</p>`,
+          )
+          .join("")}
+      </div>
+      <p class="cta-row">
+        <a class="btn" href="${esc(guide.tripHref)}">${esc(guide.tripLabel)}</a>
+        <a class="btn-quiet" href="${esc(`/days/${guide.park.id}/`)}">How many days</a>
+        <a class="btn-quiet" href="${esc(`/together/${guide.park.id}/`)}">Add a second park</a>
+      </p>
+      ${whenMonthScript(guide.bestMonths[0] ?? 9)}
+    `,
+  });
+}
+
+function whenCard(guide: WhenGuide): string {
+  const photo = guide.park.landmarks.find((lm) => lm.photo);
+  const best = joinMonthNames(guide.bestMonths);
+  return `
+          <li>
+            <a class="card" href="${esc(`/when/${guide.park.id}/`)}">
+              ${
+                photo?.photo
+                  ? `<div class="card-media"><img src="${esc(photo.photo)}" alt="${esc(photo.name)}" width="640" height="360"></div>`
+                  : ""
+              }
+              <div class="card-body">
+                <p class="card-kicker">${esc(best)}</p>
+                <h2>${esc(guide.park.shortName)}</h2>
+                <p>${esc(guide.park.state)} · from ${esc(guide.home)}</p>
+                <p class="card-blurb">${esc(guide.lede)}</p>
+              </div>
+            </a>
+          </li>`;
+}
+
+function whenParkDescription(guide: WhenGuide): string {
+  const best = joinMonthNames(guide.bestMonths);
+  return `Best time to visit ${guide.park.name}? ${best} — month by month for heat, crowds, and kids. Then open a printable ${guide.park.shortName} week from ${guide.home}.`;
+}
+
+function whenHubJsonLd(guides: WhenGuide[]): string {
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Best time to visit a national park",
+    itemListElement: guides.map((guide, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: `Best time to visit ${guide.park.name}`,
+      url: `https://rimfold.com/when/${guide.park.id}/`,
+    })),
+  });
+}
+
+function joinMonthNames(months: number[]): string {
+  const names = months.map(monthName);
+  if (names.length <= 2) return names.join(" and ");
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
+
+function whenParkJsonLd(guide: WhenGuide): string {
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: guide.faqs.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: { "@type": "Answer", text: item.a },
+    })),
+  });
+}
+
+function whenMonthScript(defaultMonth: number): string {
+  return `
+      <script>
+        (function () {
+          var sel = document.getElementById("when-month");
+          var sum = document.getElementById("when-summary");
+          if (!sel) return;
+          function apply() {
+            var month = sel.value;
+            document.querySelectorAll(".when-table tbody tr").forEach(function (row) {
+              row.classList.toggle("is-on", row.getAttribute("data-month") === month);
+            });
+            var on = document.querySelector('.when-table tr[data-month="' + month + '"]');
+            if (sum && on) sum.textContent = on.getAttribute("data-summary") || "";
+          }
+          var now = String(new Date().getMonth() + 1);
+          if ([].some.call(sel.options, function (opt) { return opt.value === now; })) {
+            sel.value = now;
+          } else {
+            sel.value = ${JSON.stringify(String(defaultMonth))};
+          }
+          sel.addEventListener("change", apply);
+          apply();
+        })();
+      </script>`;
+}
+
 function tripBody(outline: ClassicOutline): string {
   const { trip, park, days, stops, photos, plannerHref } = outline;
   const bbox = mapBbox(stops.length ? stops.map((s) => s.coord) : [park.coord]);
@@ -599,6 +816,7 @@ function tripBody(outline: ClassicOutline): string {
     <p class="cta-row">
       <a class="btn" href="${esc(plannerHref)}">Open this trip with the map</a>
       <a class="btn-quiet" href="/">Plan a different park</a>
+      ${whenGuide(park.id) ? `<a class="btn-quiet" href="${esc(`/when/${park.id}/`)}">Best time to visit</a>` : ""}
     </p>
     <figure class="map">
       <iframe title="Map of ${esc(park.shortName)} overnight towns" src="${mapSrc}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
@@ -741,12 +959,13 @@ function layout(opts: {
       <a class="top-link" href="/trips/">Classic trips</a>
       <a class="top-link" href="/days/">How many days</a>
       <a class="top-link" href="/together/">Two parks</a>
+      <a class="top-link" href="/when/">When to go</a>
     </nav>
   </header>
   <main>${opts.body}</main>
   <footer class="site-foot">
     <p>Rimfold turns a park, a home city, and a few days into a daily plan you can print. Stays are a base, not a booking.</p>
-    <p><a href="/">Plan a trip</a> · <a href="/trips/">Classic trips</a> · <a href="/days/">How many days</a> · <a href="/together/">Two parks</a> · rimfold.com</p>
+    <p><a href="/">Plan a trip</a> · <a href="/trips/">Classic trips</a> · <a href="/days/">How many days</a> · <a href="/together/">Two parks</a> · <a href="/when/">When to go</a> · rimfold.com</p>
   </footer>
 </body>
 </html>
@@ -819,6 +1038,17 @@ function pageCss(): string {
     .park-index a span:last-child { color:var(--soft); font-size:13px; }
     .faq h3 { font-family:Fraunces,Georgia,serif; font-size:20px; margin:22px 0 8px; color:var(--pine); }
     .faq p { max-width:640px; color:var(--soft); margin:0; }
+    .when-toolbar { display:flex; flex-wrap:wrap; gap:16px 28px; margin:8px 0 8px; }
+    .when-toolbar .jump { margin:12px 0 0; }
+    .when-summary { max-width:720px; font-size:17px; color:var(--soft); min-height:3.2em; }
+    .when-scroll { overflow-x:auto; margin:8px 0 18px; }
+    .when-table { width:100%; border-collapse:collapse; background:#fff; border-radius:16px; overflow:hidden; border:1px solid rgba(26,35,50,.08); font-size:14px; }
+    .when-table th, .when-table td { text-align:left; padding:10px 12px; vertical-align:top; border-bottom:1px solid rgba(26,35,50,.06); }
+    .when-table thead th { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); background:rgba(196,165,116,.16); }
+    .when-table tbody th { font-weight:600; white-space:nowrap; color:var(--pine); }
+    .when-table tr.is-best { background:rgba(31,58,46,.04); }
+    .when-table tr.is-on { outline:2px solid var(--pine); outline-offset:-2px; background:rgba(196,165,116,.18); }
+    .when-tag { display:inline-block; margin-left:6px; font-family:Oswald,sans-serif; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--gold); }
   `;
 }
 
