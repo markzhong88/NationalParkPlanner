@@ -1,5 +1,3 @@
-import { trackFeedback } from "../lib/analytics";
-
 export const FEEDBACK_EMAIL = "mark.zhong@greenlake.co";
 
 export const FEEDBACK_MAILTO =
@@ -7,12 +5,7 @@ export const FEEDBACK_MAILTO =
 
 export function FeedbackLink({ className }: { className?: string }) {
   return (
-    <a
-      href={FEEDBACK_MAILTO}
-      title={FEEDBACK_EMAIL}
-      className={className}
-      onClick={() => trackFeedback()}
-    >
+    <a href={FEEDBACK_MAILTO} title={FEEDBACK_EMAIL} className={className}>
       Send feedback
     </a>
   );

@@ -46,7 +46,7 @@ export function trackGenerateTrip(input: TripInput, source: GenerateSource, extr
     kids: input.kids,
     home: input.home.slice(0, 80),
     flying: extra.flying ?? false,
-    source,
+    generate_source: source,
   });
 }
 
@@ -78,10 +78,6 @@ export function trackPlanAnother() {
   track("plan_another_trip");
 }
 
-export function trackFeedback() {
-  track("send_feedback");
-}
-
 export function trackFeedbackShown(source: FeedbackSource, testing = false) {
   track("feedback_card_shown", {
     feedback_source: source,
@@ -107,14 +103,14 @@ export function trackItineraryFeedback(opts: {
     park_name: opts.parkName,
     days: opts.days,
     returning: opts.returning,
-    source: opts.source,
+    feedback_source: opts.source,
     has_note: opts.hasNote,
     feedback_note: opts.note?.slice(0, 100),
   });
 }
 
 function captureCampaign(): Campaign {
-  const fromUrl = campaignFromSearch(window.location.search);
+  const fromUrl = campaignFromSearch(new URLSearchParams(window.location.search));
   if (Object.keys(fromUrl).length) {
     writeStored(fromUrl);
     return fromUrl;
@@ -123,7 +119,7 @@ function captureCampaign(): Campaign {
 }
 
 function campaignParams(): Record<string, string> {
-  const live = campaignFromSearch(window.location.search);
+  const live = campaignFromSearch(new URLSearchParams(window.location.search));
   if (Object.keys(live).length) {
     campaign = { ...campaign, ...live };
     writeStored(campaign);
@@ -137,8 +133,7 @@ function campaignParams(): Record<string, string> {
   return params;
 }
 
-function campaignFromSearch(search: string): Campaign {
-  const q = new URLSearchParams(search);
+function campaignFromSearch(q: URLSearchParams): Campaign {
   const next: Campaign = {};
   for (const key of CAMPAIGN_KEYS) {
     const value = q.get(key)?.trim();

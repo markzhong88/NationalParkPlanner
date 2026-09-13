@@ -348,56 +348,66 @@ function SaveTripControl({
     };
   }, [open]);
 
-  const label =
-    busy != null ? "Saving…" : copied === "copied" ? "Copied" : copied === "downloaded" ? "Saved" : "Save trip";
+  const primary =
+    busy === "png" ? "Downloading…" : busy != null ? "Working…" : "Download poster";
+  const moreLabel = copied === "copied" ? "Copied" : copied === "downloaded" ? "Saved" : "More";
 
   return (
-    <div className="relative" ref={rootRef}>
-      <button
-        type="button"
-        disabled={busy != null}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
-        className="rounded-full bg-pine px-3 py-1.5 text-[12px] font-medium text-[#f4efe4] transition hover:bg-pine/90 disabled:opacity-50"
-      >
-        {label}
-      </button>
-      {open && busy == null ? (
-        <div
-          role="menu"
-          aria-label="Save trip"
+    <div className={footer ? "flex flex-col gap-2" : undefined} ref={rootRef}>
+      <div className="relative flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          disabled={busy != null}
+          onClick={onPng}
           className={
             footer
-              ? "absolute left-0 z-20 mt-1.5 w-[11.5rem] rounded-xl bg-[#f4efe4] p-1 shadow-[0_12px_32px_rgba(26,35,50,0.18)] ring-1 ring-pine/12"
-              : "absolute right-0 z-20 mt-1.5 w-[11.5rem] rounded-xl bg-[#f4efe4] p-1 shadow-[0_12px_32px_rgba(26,35,50,0.18)] ring-1 ring-pine/12"
+              ? "rounded-full bg-pine px-4 py-2 text-[13px] font-medium text-[#f4efe4] transition hover:bg-pine/90 disabled:opacity-50"
+              : "rounded-full bg-pine px-3 py-1.5 text-[12px] font-medium text-[#f4efe4] transition hover:bg-pine/90 disabled:opacity-50"
           }
         >
-          <SaveChoice
-            label="Poster image"
-            hint="share or print later"
-            onClick={() => {
-              setOpen(false);
-              onPng();
-            }}
-          />
-          <SaveChoice
-            label="PDF"
-            hint="one page to print"
-            onClick={() => {
-              setOpen(false);
-              onPdf();
-            }}
-          />
-          <SaveChoice
-            label="Copy text"
-            hint="paste into notes"
-            onClick={() => {
-              setOpen(false);
-              onCopy();
-            }}
-          />
-        </div>
+          {primary}
+        </button>
+        <button
+          type="button"
+          disabled={busy != null}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+          className="text-[12px] font-medium text-pine/80 underline decoration-gold/60 underline-offset-4 transition hover:text-pine disabled:opacity-50"
+        >
+          {moreLabel}
+        </button>
+        {open && busy == null ? (
+          <div
+            role="menu"
+            aria-label="More ways to save"
+            className={
+              footer
+                ? "absolute left-0 top-full z-20 mt-1.5 w-[13rem] rounded-xl bg-[#f4efe4] p-1 shadow-[0_12px_32px_rgba(26,35,50,0.18)] ring-1 ring-pine/12"
+                : "absolute right-0 top-full z-20 mt-1.5 w-[13rem] rounded-xl bg-[#f4efe4] p-1 shadow-[0_12px_32px_rgba(26,35,50,0.18)] ring-1 ring-pine/12"
+            }
+          >
+            <SaveChoice
+              label="PDF"
+              hint="one page to print"
+              onClick={() => {
+                setOpen(false);
+                onPdf();
+              }}
+            />
+            <SaveChoice
+              label="Copy text"
+              hint="paste into notes"
+              onClick={() => {
+                setOpen(false);
+                onCopy();
+              }}
+            />
+          </div>
+        ) : null}
+      </div>
+      {footer ? (
+        <p className="text-[11px] leading-relaxed text-ink/40">Print it, or save the image to your phone.</p>
       ) : null}
     </div>
   );
